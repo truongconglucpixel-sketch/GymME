@@ -1,47 +1,85 @@
 package com.example.gymmentor
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import com.example.gymmentor.ui.theme.GymMentorTheme
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.gymmentor.timer.ExerciseLibraryActivity // Import màn hình của bạn
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         setContent {
-            GymMentorTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black) // Nền đen đúng vibe
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "GYM MENTOR HUB",
+                    color = Color.White,
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(40.dp))
+
+                // NÚT 1: Phần của Người 1 (Sau này ráp vào)
+                Button(
+                    onClick = { /* TODO: Mở Dashboard */ },
+                    modifier = Modifier.fillMaxWidth().height(55.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray)
+                ) {
+                    Text("1. DASHBOARD & SKILL TREE (Người 1)")
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // NÚT 2: PHẦN CỦA BẠN 🎯
+                Button(
+                    onClick = {
+                        // Bấm một phát là nhảy sang Thư viện bài tập của bạn luôn
+                        val intent = Intent(this@MainActivity, ExerciseLibraryActivity::class.java)
+                        startActivity(intent)
+                    },
+                    modifier = Modifier.fillMaxWidth().height(55.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red) // Màu đỏ rực rỡ
+                ) {
+                    Text("2. THƯ VIỆN BÀI TẬP & TIMER", fontWeight = FontWeight.Bold)
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // NÚT 3: Phần của Người 3 (Sau này ráp vào)
+                Button(
+                    onClick = { /* TODO: Mở Calculators */ },
+                    modifier = Modifier.fillMaxWidth().height(55.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray)
+                ) {
+                    Text("3. SMART CALCULATORS (Người 3)")
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // NÚT 4: Phần của Người 4 (Sau này ráp vào)
+                Button(
+                    onClick = { /* TODO: Mở Profile */ },
+                    modifier = Modifier.fillMaxWidth().height(55.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray)
+                ) {
+                    Text("4. USER PROFILE & HISTORY (Người 4)")
                 }
             }
         }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    GymMentorTheme {
-        Greeting("Android")
     }
 }
