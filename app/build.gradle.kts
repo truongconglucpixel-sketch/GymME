@@ -53,6 +53,7 @@ dependencies {
 
     // 🚨 BẮT BUỘC dùng ksp ở đây (Tuyệt đối không gõ chữ kapt)
     ksp("androidx.room:room-compiler:$room_version")
+    implementation("io.coil-kt:coil-compose:2.6.0")
 
     // Các thư viện Compose hệ thống giữ nguyên
     implementation(platform(libs.androidx.compose.bom))

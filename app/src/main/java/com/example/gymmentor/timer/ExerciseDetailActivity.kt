@@ -17,6 +17,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -93,38 +94,46 @@ fun DetailStepCard(step: ExerciseGuide) {
 
     Card(
         colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1E)),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp), // Bo góc sâu nhìn cho hiện đại, chuẩn UI 2026
         modifier = Modifier.fillMaxWidth()
     ) {
-        Row(
-            modifier = Modifier.padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // 📸 Ảnh minh họa từng bước
+        // Đổi từ Row sang Column để xếp dọc như một bài viết/blog
+        Column(modifier = Modifier.fillMaxWidth()) {
+
+            // 📸 1. ẢNH MINH HỌA TO FULL CHIỀU NGANG (NẰM TRÊN)
             Image(
                 painter = painterResource(id = if (imageResId != 0) imageResId else android.R.drawable.ic_menu_gallery),
-                contentDescription = null,
+                contentDescription = "Hình ảnh minh họa bài viết",
+                contentScale = ContentScale.Crop, // Ép ảnh cắt cúp vừa vặn khung hình không bị méo tỉ lệ
                 modifier = Modifier
-                    .size(90.dp)
-                    .background(Color.DarkGray, shape = RoundedCornerShape(8.dp))
+                    .fillMaxWidth()
+                    .height(200.dp) // Tăng chiều cao lên 200dp để ảnh nhìn to, rõ, lực hơn hẳn
+                    .background(Color.DarkGray)
             )
 
-            Spacer(modifier = Modifier.width(16.dp))
-
-            // ✍️ Phần chữ hướng dẫn hành động
-            Column(modifier = Modifier.weight(1f)) {
+            // KHỐI CHỨA NỘI DUNG CHỮ (NẰM DƯỚI)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp) // Khoảng cách đệm xung quanh chữ cho dễ đọc
+            ) {
+                // Tiêu đề phân đoạn bước tập
                 Text(
-                    text = "Bước ${step.stepNumber}",
+                    text = "BƯỚC ${step.stepNumber}:",
                     color = Color.Red,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.ExtraBold
                 )
-                Spacer(modifier = Modifier.height(6.dp))
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // ✍️ 2. MÔ TẢ DÀI DẰNG DẶC (Tha hồ hiển thị bài viết dài)
                 Text(
                     text = step.instruction,
                     color = Color.White,
                     fontSize = 14.sp,
-                    lineHeight = 20.sp
+                    fontWeight = FontWeight.Normal,
+                    lineHeight = 22.sp // Tăng khoảng cách giữa các dòng để đọc văn bản dài không bị mỏi mắt
                 )
             }
         }
