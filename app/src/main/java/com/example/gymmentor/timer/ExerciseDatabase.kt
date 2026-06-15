@@ -16,6 +16,46 @@ data class Exercise(
     @ColumnInfo(name = "is_custom") val isCustom: Boolean = false // Số sao đánh giá
 )
 
+@Entity(tableName = "workout_routines")
+data class WorkoutRoutine(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    @ColumnInfo(name = "name") val name: String,
+    @ColumnInfo(name = "created_at") val createdAt: Long = System.currentTimeMillis()
+)
+
+@Entity(
+    tableName = "routine_exercises",
+    foreignKeys = [
+        ForeignKey(
+            entity = WorkoutRoutine::class,
+            parentColumns = ["id"],
+            childColumns = ["routine_id"],
+            onDelete = ForeignKey.CASCADE
+        ),
+        ForeignKey(
+            entity = Exercise::class,
+            parentColumns = ["id"],
+            childColumns = ["exercise_id"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ], indices = [
+        Index(value = ["routine_id", "exercise_id"], unique = true)
+    ]
+)
+data class RoutineExercise(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    @ColumnInfo(name = "routine_id") val routineId: Int,
+    @ColumnInfo(name = "exercise_id") val exerciseId: Int,
+    @ColumnInfo(name = "target_sets") val targetSets: Int = 4
+)
+
+@Entity(tableName = "user_streaks")
+data class UserStreak(
+    @PrimaryKey val id: Int = 1,
+    @ColumnInfo(name = "streak_count") val streakCount: Int = 0,
+    @ColumnInfo(name = "last_workout_date") val lastWorkoutDate: Long = 0
+)
+
 @Entity(
     tableName = "exercise_guides",
     foreignKeys = [
@@ -36,6 +76,16 @@ data class ExerciseGuide(
     @ColumnInfo(name = "step_number") val stepNumber: Int
 )
 
+data class ExerciseWithTargetSets(
+    val exerciseId: Int,
+    val name: String,
+    val mainImage: String,
+    val type: String,
+    val guide: String,
+    val targetSets: Int,
+    val isCustom: Int
+)
+
 @Dao
 interface ExerciseDao {
     @Query("SELECT * FROM exercises")
@@ -52,9 +102,20 @@ interface ExerciseDao {
 }
 
 // 🚨 ĐÃ FIX: Khai báo đầy đủ cả 2 bảng và nâng lên version 3
-@Database(entities = [Exercise::class, ExerciseGuide::class], version = 4, exportSchema = false)
+@Database(
+    entities = [
+        Exercise::class,
+        WorkoutRoutine::class,
+        RoutineExercise::class,
+        UserStreak::class,
+        ExerciseGuide::class 
+    ],
+    version = 7,
+    exportSchema = false
+)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun exerciseDao(): ExerciseDao
+    abstract fun workoutDao(): WorkoutDao
 
     companion object {
         @Volatile

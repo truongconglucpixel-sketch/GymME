@@ -3,14 +3,15 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <application
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
-        android:fullBackupContent="@xml/backup_rules"
+        android:fullBackupContent="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.GymMentor">
+
         <activity
             android:name="com.example.gymmentor.MainActivity"
             android:exported="true"
@@ -24,6 +25,7 @@
         <activity android:name=".timer.ExerciseLibraryActivity" android:exported="false" />
         <activity android:name=".timer.TimerActivity" android:exported="false" />
         <activity android:name=".timer.ExerciseDetailActivity" android:exported="false" />
+        <activity android:name=".timer.RoutineListActivity" android:exported="false" />
+        <activity android:name=".timer.RoutineDetailActivity" android:exported="false"/>
     </application>
-
 </manifest>

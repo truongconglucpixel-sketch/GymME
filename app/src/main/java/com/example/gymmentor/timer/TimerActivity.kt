@@ -6,7 +6,10 @@ import android.os.CountDownTimer
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
@@ -30,42 +33,43 @@ class TimerActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Nhận tên bài tập từ ExerciseLibraryActivity gửi sang
         val exerciseName = intent.getStringExtra("EXERCISE_NAME") ?: "ĐANG TẬP LUYỆN"
 
         setContent {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black),
+                    .background(Color.Black)
+                    .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                // Hiển thị tên bài tập ở thớt trên cho rực rỡ
                 Text(
                     text = exerciseName.uppercase(),
-                    color = Color.Red, // Màu đỏ Neon gắt bướng
-                    fontSize = 28.sp,
+                    color = Color.Red,
+                    fontSize = 24.sp,
                     fontWeight = FontWeight.Bold
                 )
-                Spacer(modifier = Modifier.height(30.dp))
+                Spacer(modifier = Modifier.height(40.dp))
 
                 TimerScreen(
                     timeLeft = timeLeftInMillis,
                     btnText = buttonText,
-                    onButtonClick = { handleMainButtonClick()},
-                    onDecreaseClick = { changeTime(-10000L)},
-                    onIncreaseClick = { changeTime(10000L)}
+                    onButtonClick = { handleMainButtonClick() },
+                    onMinDecreaseClick = { changeTime(-60000L) },
+                    onDecreaseClick = { changeTime(-10000L) },
+                    onIncreaseClick = { changeTime(10000L) },
+                    onMinIncreaseClick = { changeTime(60000L) }
                 )
             }
         }
     }
 
     private fun handleMainButtonClick() {
-        if(timerRunning) {
+        if (timerRunning) {
             stopTimer()
         } else {
-            if(timeLeftInMillis <= 0L) {
+            if (timeLeftInMillis <= 0L) {
                 timeLeftInMillis = defaultRestTime
                 buttonText = "Bắt đầu nghỉ"
             } else startTimer(timeLeftInMillis)
@@ -99,13 +103,11 @@ class TimerActivity : ComponentActivity() {
         super.onPause()
         val prefs = getSharedPreferences("GymMentorPrefs", Context.MODE_PRIVATE)
         val editor = prefs.edit()
-
         val endTime = System.currentTimeMillis() + timeLeftInMillis
         editor.putLong("endTime", endTime)
         editor.putBoolean("timerRunning", timerRunning)
-        editor.putLong("timeLeft", timeLeftInMillis) // Key là "timeLeft"
+        editor.putLong("timeLeft", timeLeftInMillis)
         editor.apply()
-
         countDownTimer?.cancel()
     }
 
@@ -130,20 +132,19 @@ class TimerActivity : ComponentActivity() {
             buttonText = if (timeLeftInMillis == 0L) "Vào hiệp thôi!" else "Bắt đầu nghỉ"
         }
     }
-    private fun changeTime(amountInMillis: Long){
+
+    private fun changeTime(amountInMillis: Long) {
         val newTime = timeLeftInMillis + amountInMillis
         timeLeftInMillis = if (newTime < 0) 0L else newTime
 
-        if(timerRunning){
+        if (timerRunning) {
             startTimer(timeLeftInMillis)
         } else {
-            if (timeLeftInMillis == 0L) buttonText = "Vào hiệp thôi"
-            else if (buttonText == "Vào hiệp thôi")
-                buttonText = "Bắt đầu nghỉ"
+            if (timeLeftInMillis == 0L) buttonText = "Vào hiệp thôi!"
+            else if (buttonText == "Vào hiệp thôi!") buttonText = "Bắt đầu nghỉ"
         }
     }
 }
-
 
 @Composable
 fun TimerScreen(
@@ -151,7 +152,9 @@ fun TimerScreen(
     btnText: String,
     onButtonClick: () -> Unit,
     onIncreaseClick: () -> Unit,
-    onDecreaseClick: () -> Unit
+    onDecreaseClick: () -> Unit,
+    onMinDecreaseClick: () -> Unit,
+    onMinIncreaseClick: () -> Unit
 ) {
     val minutes = (timeLeft / 1000) / 60
     val seconds = (timeLeft / 1000) % 60
@@ -164,47 +167,72 @@ fun TimerScreen(
         Text(
             text = timeString,
             color = Color.White,
-            fontSize = 70.sp,
-            fontWeight = FontWeight.Bold
+            fontSize = 75.sp,
+            fontWeight = FontWeight.ExtraBold
         )
-        Spacer(modifier = Modifier.height(20.dp))
 
+        Spacer(modifier = Modifier.height(35.dp))
 
         Row(
-            horizontalArrangement = Arrangement.spacedBy(25.dp)
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Button(
-                onClick = onDecreaseClick,
-                colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray)
-            ) {
-                Text("-10s", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
-            }
-            Button(
-                onClick = onIncreaseClick,
-                colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray)
-            ) {
-                Text("+10s", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
-            }
-
-            Spacer(modifier = Modifier.height(35.dp))
-
+            TimeAdjustmentButton(text = "-60s", onClick = onMinDecreaseClick, modifier = Modifier.weight(1f))
+            TimeAdjustmentButton(text = "-10s", onClick = onDecreaseClick, modifier = Modifier.weight(1f))
+            TimeAdjustmentButton(text = "+10s", onClick = onIncreaseClick, modifier = Modifier.weight(1f))
+            TimeAdjustmentButton(text = "+60s", onClick = onMinIncreaseClick, modifier = Modifier.weight(1f))
         }
-        Button(onClick = onButtonClick,
-            modifier = Modifier.width(200.dp).height((50.dp)),
-        colors = ButtonDefaults.buttonColors(containerColor = Color.Red)) {
-            Text(text = btnText, fontSize = 20.sp)
+
+        Spacer(modifier = Modifier.height(45.dp))
+
+        Button(
+            onClick = onButtonClick,
+            modifier = Modifier
+                .width(220.dp)
+                .height(55.dp),
+            shape = RoundedCornerShape(28.dp), // Bo tròn mềm mại chuẩn UI high-tech
+            colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+        ) {
+            Text(text = btnText, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.White)
         }
+    }
+}
+
+@Composable
+fun RowScope.TimeAdjustmentButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .height(45.dp)
+            .background(Color(0xFF2C2C2E), shape = RoundedCornerShape(10.dp)) // Nền xám tối sang trọng
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text,
+            color = Color.White,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold
+        )
     }
 }
 
 @Preview(name = "Starboy Timer - Đang chạy nghỉ", showBackground = true)
 @Composable
 fun TimerScreenRunningPreview() {
-    TimerScreen(
-        timeLeft = 45000L,
-        btnText = "DỪNG",
-        onButtonClick = {},
-        onDecreaseClick = {},
-        onIncreaseClick = {}
-    )
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.Black)
+            .padding(20.dp)
+    ) {
+        TimerScreen(
+            timeLeft = 45000L,
+            btnText = "DỪNG",
+            onButtonClick = {},
+            onMinDecreaseClick = {},
+            onDecreaseClick = {},
+            onIncreaseClick = {},
+            onMinIncreaseClick = {}
+        )
+    }
 }

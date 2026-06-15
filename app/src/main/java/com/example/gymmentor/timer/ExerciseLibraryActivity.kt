@@ -4,53 +4,62 @@ import android.app.Dialog
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.items // 🚨 ĐÃ FIX: Import phục vụ items trong LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue // 🚨 ĐÃ FIX: Cứu vớt lỗi toán tử 'by collectAsState'
+import androidx.compose.runtime.setValue // 🚨 ĐÃ FIX: Cứu vớt lỗi toán tử 'by' nói chung
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.TextButton
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.window.Dialog
 import coil.compose.rememberAsyncImagePainter
+import kotlinx.coroutines.launch
 
 class ExerciseLibraryActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // 1. KẾT NỐI DATABASE: Gọi két sắt Room lấy dữ liệu thật dưới máy lên
-        val databaseExercises = AppDatabase.getDatabase(this).exerciseDao().getAllExercise()
+        // Kết nối hai đầu cổng DAO database
+        val database = AppDatabase.getDatabase(this)
+        val databaseExercises = database.exerciseDao().getAllExercise()
 
         setContent {
-            var selectedCategory by remember { mutableStateOf("Tất cả") }
-            // 🚨 BIẾN CÔNG TẮC: Để quản lý việc ẩn/hiện cái hộp thoại thêm bài tập
-            var showAddDialog by remember { mutableStateOf(false) }
             val context = LocalContext.current
+            val database = AppDatabase.getDatabase(context)
 
+            // 🚨 ĐÃ FIX: Biến trạng thái động chứa danh sách bài tập, mặc định ban đầu là trống
+            var databaseExercises by remember { mutableStateOf<List<Exercise>>(emptyList()) }
+
+            // 🎯 ĐÃ FIX: Chạy ngầm lôi dữ liệu lên ngay khi màn hình sẵn sàng, database đúc xong phát là nạp vô biến ngay!
+            LaunchedEffect(Unit) {
+                databaseExercises = database.exerciseDao().getAllExercise()
+            }
+
+            var selectedCategory by remember { mutableStateOf("Tất cả") }
+            var showAddDialog by remember { mutableStateOf(false) }
+            var selectedExerciseForRoutine by remember { mutableStateOf<Exercise?>(null) }
+            val coroutineScope = rememberCoroutineScope()
+
+            // Bộ lọc dữ liệu tự động vẽ lại khi databaseExercises thay đổi
             val filterExercises = if (selectedCategory == "Tất cả") {
                 databaseExercises
             } else {
@@ -58,11 +67,10 @@ class ExerciseLibraryActivity : ComponentActivity() {
             }
                 .sortedBy { if (it.type == "COMPOUND") 0 else 1 }
 
-            // Dùng Scaffold để đính kèm nút dấu cộng nổi (FAB) chuẩn UI Android
             androidx.compose.material3.Scaffold(
                 floatingActionButton = {
                     androidx.compose.material3.FloatingActionButton(
-                        onClick = { showAddDialog = true }, // Bấm vào là bật Dialog lên liền
+                        onClick = { showAddDialog = true },
                         containerColor = Color.Red,
                         contentColor = Color.White
                     ) {
@@ -74,10 +82,30 @@ class ExerciseLibraryActivity : ComponentActivity() {
                     modifier = Modifier
                         .fillMaxSize()
                         .background(Color.Black)
-                        .padding(paddingValues) // Tránh đè lên nút nổi
+                        .padding(paddingValues)
                         .padding(16.dp)
                 ) {
-                    Text("THƯ VIỆN BÀI TẬP", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                    // 🚨 ĐÃ THÊM: Tiêu đề + Nút nhảy nhanh sang quản lý Gói Tập tĩnh
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("THƯ VIỆN BÀI TẬP", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+
+                        Box(
+                            modifier = Modifier
+                                .background(Color(0xFF2C2C2E), shape = RoundedCornerShape(8.dp))
+                                .clickable {
+                                    context.startActivity(Intent(context, RoutineListActivity::class.java))
+                                    Toast.makeText(context, "Mở danh sách Gói tập", Toast.LENGTH_SHORT).show()
+                                }
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Text("Gói Tập 📋", color = Color.Yellow, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+
                     Spacer(modifier = Modifier.height(16.dp))
 
                     CategorySelector(
@@ -89,24 +117,28 @@ class ExerciseLibraryActivity : ComponentActivity() {
 
                     LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         items(filterExercises) { exercise ->
-                            ExerciseCard(exercise = exercise, onClick = {
-                                val intent = Intent(this@ExerciseLibraryActivity, ExerciseDetailActivity::class.java).apply {
-                                    putExtra("EXERCISE_ID", exercise.id)
-                                    putExtra("EXERCISE_NAME", exercise.name)
-                                }
-                                startActivity(intent)
-                            })
+                            ExerciseCard(
+                                exercise = exercise,
+                                onClick = {
+                                    val intent = Intent(this@ExerciseLibraryActivity, ExerciseDetailActivity::class.java).apply {
+                                        putExtra("EXERCISE_ID", exercise.id)
+                                        putExtra("EXERCISE_NAME", exercise.name)
+                                    }
+                                    startActivity(intent)
+                                },
+                                // 🚨 KÍCH HOẠT: Khi ấn nút [+] trên card, gán bài tập hiện tại để bật Dialog chọn gói nhét vào
+                                onAddToRoutineClick = { selectedExerciseForRoutine = exercise }
+                            )
                         }
                     }
                 }
             }
 
-            // 🚨 THỰC THI LỆNH LƯU: Nếu công tắc mở, ta lôi Dialog ra xài
+            // Hộp thoại thêm bài tập custom mới (giữ nguyên)
             if (showAddDialog) {
                 AddExerciseDialog(
                     onDimiss = { showAddDialog = false },
                     onSave = { newExercise ->
-                        // 🚨 MẸO: Nếu user chọn ảnh thật (có đường dẫn content://), ta xin quyền đọc file dài hạn để app ko bị mất ảnh sau khi khởi động lại
                         if (newExercise.mainImage.startsWith("content://")) {
                             try {
                                 context.contentResolver.takePersistableUriPermission(
@@ -117,13 +149,88 @@ class ExerciseLibraryActivity : ComponentActivity() {
                                 e.printStackTrace()
                             }
                         }
-
-                        // Sau đó lưu DB như bình thường
-                        AppDatabase.getDatabase(context).exerciseDao().insertSingleExercise(newExercise)
+                        database.exerciseDao().insertSingleExercise(newExercise)
                         showAddDialog = false
                         recreate()
                     }
                 )
+            }
+
+            // 🚨 ĐÃ THÊM: DIALOG CHỌN GÓI TẬP ĐỂ BỎ VÀO GIỎ HÀNG
+            if (selectedExerciseForRoutine != null) {
+                // Thu thập danh sách gói tập thực tế từ DB dưới dạng Flow
+                val routinesByFlow by database.workoutDao().getAllRoutines().collectAsState(initial = emptyList())
+
+                Dialog(onDismissRequest = { selectedExerciseForRoutine = null }) {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1E)),
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.fillMaxWidth().padding(16.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Text(
+                                text = "THÊM BÀI [${selectedExerciseForRoutine?.name?.uppercase()}] VÀO GÓI:",
+                                color = Color.White,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            if (routinesByFlow.isEmpty()) {
+                                Text("Bạn chưa tạo gói tập nào dưới máy ảo. Hãy tạo gói trước!", color = Color.Gray, fontSize = 13.sp)
+                            } else {
+                                LazyColumn(
+                                    modifier = Modifier.heightIn(max = 200.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    items(routinesByFlow) { routine ->
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .background(Color(0xFF2C2C2E), shape = RoundedCornerShape(8.dp))
+                                                .clickable {
+                                                    val currentExercise = selectedExerciseForRoutine
+
+                                                    if (currentExercise != null) {
+                                                        coroutineScope.launch {
+                                                            val isExist = database.workoutDao().isExerciseInRoutine(routine.id, currentExercise.id)
+
+                                                            if (isExist > 0) {
+                                                                Toast.makeText(context, "Bài [${currentExercise.name}] đã có trong gói này rồi bác ơi!", Toast.LENGTH_SHORT).show()
+                                                            } else {
+                                                                // Nếu chưa có -> Tiến hành nhặt vào giỏ bình thường
+                                                                database.workoutDao().addExerciseToRoutine(
+                                                                    RoutineExercise(
+                                                                        routineId = routine.id,
+                                                                        exerciseId = currentExercise.id,
+                                                                        targetSets = 4
+                                                                    )
+                                                                )
+                                                                Toast.makeText(context, "Đã nhặt vào gói: ${routine.name}", Toast.LENGTH_SHORT).show()
+                                                            }
+                                                        }
+                                                    }
+                                                    selectedExerciseForRoutine = null // Đóng dialog
+                                                }
+                                                .padding(14.dp)
+                                        ) {
+                                            Text(text = "📋  ${routine.name}", color = Color.Yellow, fontWeight = FontWeight.SemiBold)
+                                        }
+                                    }
+                                }
+                            }
+
+                            TextButton(
+                                onClick = { selectedExerciseForRoutine = null },
+                                modifier = Modifier.align(Alignment.End)
+                            ) {
+                                Text("Đóng", color = Color.Red)
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -353,7 +460,11 @@ fun CategorySelector(categories: List<String>, selectedCategory: String, onCateg
 }
 
 @Composable
-fun ExerciseCard(exercise: Exercise, onClick: () -> Unit) {
+fun ExerciseCard(
+    exercise: Exercise,
+    onClick: () -> Unit,
+    onAddToRoutineClick: () -> Unit // 🚨 CỔNG ĐÓN MỚI: Ủy quyền sự kiện bấm nút nhặt hàng bỏ giỏ
+) {
     val context = LocalContext.current
     var showDialog by remember { mutableStateOf(false) }
 
@@ -362,10 +473,8 @@ fun ExerciseCard(exercise: Exercise, onClick: () -> Unit) {
 
     val imageResId = remember(exercise.mainImage) {
         if (!isUriImage && exercise.mainImage.isNotBlank()){
-        context.resources.getIdentifier(exercise.mainImage, "drawable", context.packageName)
-    } else {
-        0
-        }
+            context.resources.getIdentifier(exercise.mainImage, "drawable", context.packageName)
+        } else { 0 }
     }
 
     val imagePainter = if (isUriImage){
@@ -390,7 +499,7 @@ fun ExerciseCard(exercise: Exercise, onClick: () -> Unit) {
                 modifier = Modifier
                     .size(75.dp)
                     .background(Color.DarkGray, shape = RoundedCornerShape(8.dp))
-                    .clickable {showDialog = true }
+                    .clickable { showDialog = true }
             )
 
             Spacer(modifier = Modifier.width(14.dp))
@@ -406,30 +515,26 @@ fun ExerciseCard(exercise: Exercise, onClick: () -> Unit) {
                         color = Color.White,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.weight(1f) // Ép tên bài tập co giãn để nhường chỗ cho các Tag
+                        modifier = Modifier.weight(1f)
                     )
 
-                    // Khối chứa các nhãn Tag ở bên phải
                     Row(verticalAlignment = Alignment.CenterVertically) {
-
-                        // 🚨 NHÃN "TỰ THÊM": Chỉ hiện khi bài tập đó do user tự chế
                         if (exercise.isCustom) {
                             Box(
                                 modifier = Modifier
-                                    .background(Color(0xFFFF8C00), shape = RoundedCornerShape(4.dp)) // Màu cam đậm rực rỡ
+                                    .background(Color(0xFFFF8C00), shape = RoundedCornerShape(4.dp))
                                     .padding(horizontal = 6.dp, vertical = 2.dp)
                             ) {
                                 Text(
-                                    text = "TỰ THÊM",
+                                    text = "CUSTOM",
                                     color = Color.White,
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.ExtraBold
                                 )
                             }
-                            Spacer(modifier = Modifier.width(6.dp)) // Cách ra một chút với nhãn type
+                            Spacer(modifier = Modifier.width(6.dp))
                         }
 
-                        // Nhãn Compound / Isolation cũ của bác
                         Text(
                             text = exercise.type,
                             color = if (exercise.type == "COMPOUND") Color.Yellow else Color.Cyan,
@@ -440,16 +545,43 @@ fun ExerciseCard(exercise: Exercise, onClick: () -> Unit) {
                 }
                 Spacer(modifier = Modifier.height(4.dp))
 
-                StarRatingBar(rating = exercise.starRate)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Bọc Column vào weight(1f) để ép chữ tự động xuống dòng nếu quá dài
+                    Column(modifier = Modifier.weight(1f)) {
+                        StarRatingBar(rating = exercise.starRate)
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = exercise.guide,
+                            color = Color.Gray,
+                            fontSize = 13.sp,
+                            maxLines = 2 // Giới hạn tối đa 2 dòng cho đẹp card, dài quá tự thêm ba chấm (...)
+                        )
+                    }
 
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(exercise.guide, color = Color.Gray, fontSize = 13.sp)
+                    Spacer(modifier = Modifier.width(8.dp)) // Tạo khoảng cách an toàn với nút
+
+                    // CHIẾC NÚT GIỎ HÀNG [+] KHÔNG BAO GIỜ BỊ ĐÈ
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(Color.Red, shape = CircleShape)
+                            .clickable { onAddToRoutineClick() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("+", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
             }
         }
     }
 
+    // Khối Dialog phóng to ảnh (Giữ nguyên vẹn)
     if (showDialog) {
-        Dialog(onDismissRequest = {showDialog = false}){
+        Dialog(onDismissRequest = { showDialog = false }){
             Card(
                 colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1E)),
                 shape = RoundedCornerShape(16.dp),
@@ -465,24 +597,19 @@ fun ExerciseCard(exercise: Exercise, onClick: () -> Unit) {
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp
                     )
-
                     Spacer(modifier = Modifier.height(16.dp))
-
                     Image(
                         painter = imagePainter,
                         contentDescription = null,
                         modifier = Modifier.fillMaxWidth().height(250.dp).background(Color.DarkGray)
                     )
-
                     Spacer(modifier = Modifier.height(16.dp))
-
                     Button(
-                        onClick = { showDialog = false},
+                        onClick = { showDialog = false },
                         colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
                     ) {
                         Text("Đóng", color = Color.White)
                     }
-
                 }
             }
         }
