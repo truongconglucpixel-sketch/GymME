@@ -50,4 +50,10 @@ interface WorkoutDao {
     //check xem đã có bài trong gói chưa
     @Query("SELECT COUNT(*) FROM routine_exercises WHERE routine_id = :routineId AND exercise_id = :exerciseId")
     suspend fun isExerciseInRoutine(routineId: Int, exerciseId: Int): Int
+
+    @Insert
+    suspend fun   insertHistory(history: WorkoutHistory)
+
+    @Query("SELECT * FROM workout_history ORDER BY logged_at DESC")
+    fun getAllHistory(): kotlinx.coroutines.flow.Flow<List<WorkoutHistory>>
 }

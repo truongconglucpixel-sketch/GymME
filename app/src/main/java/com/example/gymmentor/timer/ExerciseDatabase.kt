@@ -99,18 +99,22 @@ interface ExerciseDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertSingleExercise(exercise: Exercise): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insertSingleGuide(guide: ExerciseGuide): Long
 }
 
-// 🚨 ĐÃ FIX: Khai báo đầy đủ cả 2 bảng và nâng lên version 3
+
 @Database(
     entities = [
         Exercise::class,
         WorkoutRoutine::class,
         RoutineExercise::class,
         UserStreak::class,
-        ExerciseGuide::class 
+        ExerciseGuide::class,
+        WorkoutHistory::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

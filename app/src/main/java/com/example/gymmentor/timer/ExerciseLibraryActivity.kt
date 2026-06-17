@@ -40,7 +40,7 @@ class ExerciseLibraryActivity : ComponentActivity() {
 
         // Kết nối hai đầu cổng DAO database
         val database = AppDatabase.getDatabase(this)
-        val databaseExercises = database.exerciseDao().getAllExercise()
+
 
         setContent {
             val context = LocalContext.current
@@ -48,16 +48,22 @@ class ExerciseLibraryActivity : ComponentActivity() {
 
             // 🚨 ĐÃ FIX: Biến trạng thái động chứa danh sách bài tập, mặc định ban đầu là trống
             var databaseExercises by remember { mutableStateOf<List<Exercise>>(emptyList()) }
+            val coroutineScope = rememberCoroutineScope()
+            var streakCount by remember { mutableStateOf(0) }
 
             // 🎯 ĐÃ FIX: Chạy ngầm lôi dữ liệu lên ngay khi màn hình sẵn sàng, database đúc xong phát là nạp vô biến ngay!
             LaunchedEffect(Unit) {
                 databaseExercises = database.exerciseDao().getAllExercise()
+
+                val currentStreak = database.workoutDao().getUserStreak()
+                if (currentStreak != null) {
+                    streakCount = currentStreak.streakCount
+                }
             }
 
             var selectedCategory by remember { mutableStateOf("Tất cả") }
             var showAddDialog by remember { mutableStateOf(false) }
             var selectedExerciseForRoutine by remember { mutableStateOf<Exercise?>(null) }
-            val coroutineScope = rememberCoroutineScope()
 
             // Bộ lọc dữ liệu tự động vẽ lại khi databaseExercises thay đổi
             val filterExercises = if (selectedCategory == "Tất cả") {
@@ -86,23 +92,66 @@ class ExerciseLibraryActivity : ComponentActivity() {
                         .padding(16.dp)
                 ) {
                     // 🚨 ĐÃ THÊM: Tiêu đề + Nút nhảy nhanh sang quản lý Gói Tập tĩnh
+                    // 🎯 BẢN CẢI TIẾN TIÊU ĐỀ: Đẹp, thoáng, cân đối 100% không lo lỗi font
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 4.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("THƯ VIỆN BÀI TẬP", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                        // 1. Tiêu đề bên trái màu Trắng tinh tế
+                        Text(
+                            text = "THƯ VIỆN BÀI TẬP",
+                            color = Color.White,
+                            fontSize = 20.sp, // Hạ xuống 20.sp để nhường đất cho thớt phải rộng rãi
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.weight(1f) // Ép tiêu đề tự động co giãn ôm sát bên trái
+                        )
 
-                        Box(
-                            modifier = Modifier
-                                .background(Color(0xFF2C2C2E), shape = RoundedCornerShape(8.dp))
-                                .clickable {
-                                    context.startActivity(Intent(context, RoutineListActivity::class.java))
-                                    Toast.makeText(context, "Mở danh sách Gói tập", Toast.LENGTH_SHORT).show()
-                                }
-                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                        // Khối chứa cả Lửa và Gói tập bên phải (Không dùng IntrinsicSize nữa)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Text("Gói Tập 📋", color = Color.Yellow, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            // 2. 🔥 THẺ LỬA STREAK
+                            Row(
+                                modifier = Modifier
+                                    .background(Color(0xFF1C1C1E), shape = RoundedCornerShape(6.dp))
+                                    .padding(horizontal = 8.dp, vertical = 6.dp), // Tăng padding cho hộp to ra
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(text = "🔥", fontSize = 13.sp)
+                                Spacer(modifier = Modifier.width(3.dp))
+                                Text(
+                                    text = "$streakCount Buổi",
+                                    color = Color(0xFFFF8C00),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    maxLines = 1
+                                )
+                            }
+
+                            // 3. NÚT GÓI TẬP (Dùng icon chữ nguyên bản, bọc Box cho thoáng đạt)
+                            Box(
+                                modifier = Modifier
+                                    .background(Color(0xFF2C2C2E), shape = RoundedCornerShape(6.dp))
+                                    .clickable {
+                                        context.startActivity(Intent(context, RoutineListActivity::class.java))
+                                        Toast.makeText(context, "Mở danh sách Gói tập", Toast.LENGTH_SHORT).show()
+                                    }
+                                    .padding(horizontal = 10.dp, vertical = 6.dp), // Padding chuẩn chỉnh không lo gãy dòng
+                                contentAlignment = Alignment.Center
+                            ) {
+                                // Trả icon về chung 1 dòng Text, dùng font hệ thống gốc để máy ảo lôi được biểu tượng ra
+                                Text(
+                                    text = "Gói Tập 📋",
+                                    color = Color.Yellow,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1
+                                )
+                            }
                         }
                     }
 
@@ -123,10 +172,10 @@ class ExerciseLibraryActivity : ComponentActivity() {
                                     val intent = Intent(this@ExerciseLibraryActivity, ExerciseDetailActivity::class.java).apply {
                                         putExtra("EXERCISE_ID", exercise.id)
                                         putExtra("EXERCISE_NAME", exercise.name)
+                                        putExtra("IS_CUSTOM", exercise.isCustom)
                                     }
                                     startActivity(intent)
                                 },
-                                // 🚨 KÍCH HOẠT: Khi ấn nút [+] trên card, gán bài tập hiện tại để bật Dialog chọn gói nhét vào
                                 onAddToRoutineClick = { selectedExerciseForRoutine = exercise }
                             )
                         }

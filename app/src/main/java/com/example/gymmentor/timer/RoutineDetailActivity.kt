@@ -107,12 +107,11 @@ class RoutineDetailActivity : ComponentActivity() {
                 Button(
                     onClick = {
                         if (exercisesWithSets.isNotEmpty()) {
-                            // Lát nữa làm màn hình chiến đấu (Timer + Guide lật mặt) thì kích hoạt dòng này:
-                            // val intent = Intent(context, LiveWorkoutActivity::class.java).apply {
-                            //     putExtra("ROUTINE_ID", routineId)
-                            //     putExtra("ROUTINE_NAME", routineName)
-                            // }
-                            // context.startActivity(intent)
+                             val intent = Intent(context, LiveWorkoutActivity::class.java).apply {
+                                 putExtra("ROUTINE_ID", routineId)
+                                 putExtra("ROUTINE_NAME", routineName)
+                             }
+                             context.startActivity(intent)
                             Toast.makeText(context, "💥 Bắt đầu buổi tập: Đốt cháy cơ bắp nào!", Toast.LENGTH_SHORT).show()
                         } else {
                             Toast.makeText(context, "Vui lòng thêm bài tập trước khi bắt đầu", Toast.LENGTH_SHORT).show()
