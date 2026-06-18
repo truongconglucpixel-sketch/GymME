@@ -28,5 +28,7 @@
         <activity android:name=".timer.RoutineListActivity" android:exported="false" />
         <activity android:name=".timer.RoutineDetailActivity" android:exported="false"/>
         <activity android:name=".timer.LiveWorkoutActivity" android:exported="false"/>
+
+        <activity android:name=".calculator.CalculatorActivity" android:exported="false"/>
     </application>
 </manifest>

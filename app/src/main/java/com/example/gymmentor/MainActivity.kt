@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.gymmentor.calculator.CalculatorActivity
 import com.example.gymmentor.timer.ExerciseLibraryActivity // Import màn hình của bạn
 
 class MainActivity : ComponentActivity() {
@@ -63,7 +64,9 @@ class MainActivity : ComponentActivity() {
 
                 // NÚT 3: Phần của Người 3 (Sau này ráp vào)
                 Button(
-                    onClick = { /* TODO: Mở Calculators */ },
+                    onClick = {
+                        val intent = Intent(this@MainActivity, CalculatorActivity::class.java)
+                        startActivity(intent) },
                     modifier = Modifier.fillMaxWidth().height(55.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray)
                 ) {
