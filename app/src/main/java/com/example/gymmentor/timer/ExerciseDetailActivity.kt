@@ -38,17 +38,15 @@ class ExerciseDetailActivity : ComponentActivity() {
         val exerciseId = intent.getIntExtra("EXERCISE_ID", 1)
         val exerciseName = intent.getStringExtra("EXERCISE_NAME") ?: "CHI TIẾT BÀI TẬP"
 
-        // 🚨 CHÚ Ý: Nhận thêm trạng thái tự chế từ Thư viện quăng sang (mặc định bài gốc là false)
         val isCustomExercise = intent.getBooleanExtra("IS_CUSTOM", false)
 
         val database = AppDatabase.getDatabase(this)
 
         setContent {
-            // Biến trạng thái chứa danh sách các bước hướng dẫn
+
             var guideList by remember { mutableStateOf<List<ExerciseGuide>>(emptyList()) }
             var showAddGuideDialog by remember { mutableStateOf(false) }
 
-            // Lôi dữ liệu hướng dẫn lên ngay khi mở màn hình
             LaunchedEffect(Unit) {
                 guideList = database.exerciseDao().getGuidesForExercise(exerciseId)
             }
@@ -59,7 +57,6 @@ class ExerciseDetailActivity : ComponentActivity() {
                     .background(Color.Black)
                     .padding(16.dp)
             ) {
-                // HÀNG TIÊU ĐỀ CHÍNH
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -80,7 +77,6 @@ class ExerciseDetailActivity : ComponentActivity() {
                         )
                     }
 
-                    // 🚨 ĐẶC QUYỀN: Chỉ có bài tập CUSTOM mới lộ diện chiếc nút thêm bước này!
                     if (isCustomExercise) {
                         Button(
                             onClick = { showAddGuideDialog = true },
@@ -94,8 +90,7 @@ class ExerciseDetailActivity : ComponentActivity() {
                 }
 
                 Spacer(modifier = Modifier.height(20.dp))
-
-                // DANH SÁCH CUỘN CÁC BƯỚC TẬP LUYỆN
+                
                 if (guideList.isEmpty()) {
                     Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                         Text("Chưa có bước hướng dẫn nào.\nBấm [+ Bước] để tự chế kỹ thuật bác ơi!", color = Color.Gray, fontSize = 14.sp)
@@ -112,17 +107,15 @@ class ExerciseDetailActivity : ComponentActivity() {
                 }
             }
 
-            // 🚨 HỘP THOẠI ĐỂ NGƯỜI DÙNG TỰ CHẾ BƯỚC HƯỚNG DẪN MỚI
             if (showAddGuideDialog) {
                 AddGuideStepDialog(
-                    nextStepNumber = guideList.size + 1, // Tự động tính toán số bước tiếp theo (vd: Bước 4)
+                    nextStepNumber = guideList.size + 1,
                     onDismiss = { showAddGuideDialog = false },
                     onSave = { instructionText, imageUriString ->
-                        // Chạy lệnh chèn dữ liệu thô xuống bảng hướng dẫn
                         database.exerciseDao().insertSingleGuide(
                             ExerciseGuide(
                                 exerciseId = exerciseId,
-                                imageName = imageUriString, // Lưu chuỗi Uri ảnh nhặt từ máy dưới dạng text
+                                imageName = imageUriString, // Lưu chuỗi Uri ảnh
                                 instruction = instructionText,
                                 stepNumber = guideList.size + 1
                             )
@@ -137,7 +130,6 @@ class ExerciseDetailActivity : ComponentActivity() {
     }
 }
 
-// COMPONENT VẼ TỪNG THẺ BƯỚC TẬP (HỖ TRỢ CẢ ẢNH GỐC VÀ ẢNH GALLERY CỦA USER)
 @Composable
 fun DetailStepCard(step: ExerciseGuide) {
     val context = LocalContext.current
@@ -189,7 +181,6 @@ fun DetailStepCard(step: ExerciseGuide) {
     }
 }
 
-// HỘP THOẠI DIALOG NHẬP BƯỚC HƯỚNG DẪN CUSTOM
 @Composable
 fun AddGuideStepDialog(
     nextStepNumber: Int,
@@ -200,13 +191,11 @@ fun AddGuideStepDialog(
     var instruction by remember { mutableStateOf("") }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
 
-    // Bộ chọn ảnh từ máy
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         if (uri != null) {
             selectedImageUri = uri
-            // Cấp quyền đọc ảnh dài hạn cho Uri để không bị mất ảnh khi khởi động lại máy ảo
             try {
                 context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
             } catch (e: Exception) { e.printStackTrace() }
@@ -222,7 +211,6 @@ fun AddGuideStepDialog(
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(text = "THÊM BƯỚC HƯỚNG DẪN SỐ $nextStepNumber", color = Color.Red, fontSize = 16.sp, fontWeight = FontWeight.Bold)
 
-                // Mục chọn ảnh minh họa bước tập
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Button(onClick = { galleryLauncher.launch("image/*") }, colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray)) {
                         Text("Chọn ảnh bước")
@@ -236,7 +224,6 @@ fun AddGuideStepDialog(
                     }
                 }
 
-                // Ô nhập nội dung kỹ thuật động tác
                 OutlinedTextField(
                     value = instruction,
                     onValueChange = { instruction = it },
