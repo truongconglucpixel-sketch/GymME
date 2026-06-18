@@ -77,9 +77,9 @@ class ExerciseLibraryActivity : ComponentActivity() {
             }
                 .sortedBy { if (it.type == "COMPOUND") 0 else 1 }
 
-            androidx.compose.material3.Scaffold(
+            Scaffold(
                 floatingActionButton = {
-                    androidx.compose.material3.FloatingActionButton(
+                    FloatingActionButton(
                         onClick = { showAddDialog = true },
                         containerColor = Color(0xFFFFA500),
                         contentColor = Color.White
