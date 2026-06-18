@@ -183,10 +183,10 @@ abstract class AppDatabase : RoomDatabase() {
                             db.execSQL("INSERT INTO exercise_guides (exercise_id, image_name, instruction, step_number) VALUES (7, 'rdl_down', 'Hít vào, đẩy hông ra sau và từ từ hạ tạ dọc sát chân xuống qua đầu gối một chút. Giữ đầu gối hơi trùng, lưng thẳng, cảm nhận đùi sau căng căng.', 2)")
                             db.execSQL("INSERT INTO exercise_guides (exercise_id, image_name, instruction, step_number) VALUES (7, 'rdl_up', 'Thở ra, chủ động nhấn gót chân, đẩy hông về phía trước và siết chặt cơ mông để đứng thẳng người dậy.', 3)")
 
-// --- BÀI 8: OVERHEAD PRESS (ID = 8) ---
-                            db.execSQL("INSERT INTO exercise_guides (exercise_id, image_name, instruction, step_number) VALUES (8, 'ohp_setup', 'Đứng thẳng, hai chân bằng vai. Đặt thanh đòn ngang xương đòn (ngực trên), lòng bàn tay hướng ra trước, cùi chỏ hơi hướng về trước.', 1)")
-                            db.execSQL("INSERT INTO exercise_guides (exercise_id, image_name, instruction, step_number) VALUES (8, 'ohp_up', 'Thở ra, gồng chặt mông bụng, đẩy tạ thẳng qua đầu. Hơi ngả đầu ra sau lúc tạ đi qua mặt, rồi đưa đầu về giữa khi tạ lên đỉnh.', 2)")
-                            db.execSQL("INSERT INTO exercise_guides (exercise_id, image_name, instruction, step_number) VALUES (8, 'ohp_down', 'Hít vào, hạ thanh đòn có kiểm soát theo đường thẳng dọc sát mặt về lại vị trí ngực trên ban đầu.', 3)")
+// --- BÀI 8: DUMBBELL OVERHEAD PRESS (ID = 8) ---
+                            db.execSQL("INSERT INTO exercise_guides (exercise_id, image_name, instruction, step_number) VALUES (8, 'ohp_setup', 'Ngồi thẳng lưng trên ghế (hoặc đứng thẳng), mỗi tay cầm một quả tạ đơn đặt ngang tầm vai. Lòng bàn tay hướng về phía trước, cùi chỏ hướng xuống đất và hơi khép vào trong.', 1)")
+                            db.execSQL("INSERT INTO exercise_guides (exercise_id, image_name, instruction, step_number) VALUES (8, 'ohp_up', 'Thở ra, gồng chặt cơ bụng, chủ động dùng cơ vai đẩy mạnh hai quả tạ thẳng qua đầu theo đường vòng cung nhẹ. Giữ tạ thăng bằng ở đỉnh, không để hai quả tạ va đập vào nhau.', 2)")
+                            db.execSQL("INSERT INTO exercise_guides (exercise_id, image_name, instruction, step_number) VALUES (8, 'ohp_down', 'Hít vào, từ từ hạ tạ đôi xuống một cách chủ động và có kiểm soát (không buông tạ rơi tự do) về lại vị trí ngang vai ban đầu để duy trì áp lực lên cơ vai.', 3)")
 
 // --- BÀI 9: DUMBBELL LATERAL RAISE (ID = 9) ---
                             db.execSQL("INSERT INTO exercise_guides (exercise_id, image_name, instruction, step_number) VALUES (9, 'lateral_setup', 'Đứng thẳng, mỗi tay cầm một quả tạ đôi buông xuôi hai bên hông. Hơi cúi người về trước một chút, cùi chỏ hơi cong nhẹ.', 1)")
