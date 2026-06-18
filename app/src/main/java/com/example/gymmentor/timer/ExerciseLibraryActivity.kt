@@ -15,13 +15,13 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items // 🚨 ĐÃ FIX: Import phục vụ items trong LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.getValue // 🚨 ĐÃ FIX: Cứu vớt lỗi toán tử 'by collectAsState'
-import androidx.compose.runtime.setValue // 🚨 ĐÃ FIX: Cứu vớt lỗi toán tử 'by' nói chung
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -50,12 +50,11 @@ class ExerciseLibraryActivity : ComponentActivity() {
             val context = LocalContext.current
             val database = AppDatabase.getDatabase(context)
 
-            // 🚨 ĐÃ FIX: Biến trạng thái động chứa danh sách bài tập, mặc định ban đầu là trống
+
             var databaseExercises by remember { mutableStateOf<List<Exercise>>(emptyList()) }
             val coroutineScope = rememberCoroutineScope()
             var streakCount by remember { mutableStateOf(0) }
 
-            // 🎯 ĐÃ FIX: Chạy ngầm lôi dữ liệu lên ngay khi màn hình sẵn sàng, database đúc xong phát là nạp vô biến ngay!
             LaunchedEffect(Unit) {
                 databaseExercises = database.exerciseDao().getAllExercise()
 
@@ -69,7 +68,6 @@ class ExerciseLibraryActivity : ComponentActivity() {
             var showAddDialog by remember { mutableStateOf(false) }
             var selectedExerciseForRoutine by remember { mutableStateOf<Exercise?>(null) }
 
-            // Bộ lọc dữ liệu tự động vẽ lại khi databaseExercises thay đổi
             val filterExercises = if (selectedCategory == "Tất cả") {
                 databaseExercises
             } else {
@@ -95,8 +93,7 @@ class ExerciseLibraryActivity : ComponentActivity() {
                         .padding(paddingValues)
                         .padding(16.dp)
                 ) {
-                    // 🚨 ĐÃ THÊM: Tiêu đề + Nút nhảy nhanh sang quản lý Gói Tập tĩnh
-                    // 🎯 BẢN CẢI TIẾN TIÊU ĐỀ: Đẹp, thoáng, cân đối 100% không lo lỗi font
+
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -104,25 +101,24 @@ class ExerciseLibraryActivity : ComponentActivity() {
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // 1. Tiêu đề bên trái màu Trắng tinh tế
+
                         Text(
                             text = "THƯ VIỆN BÀI TẬP",
                             color = Color.White,
-                            fontSize = 20.sp, // Hạ xuống 20.sp để nhường đất cho thớt phải rộng rãi
+                            fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
-                            modifier = Modifier.weight(1f) // Ép tiêu đề tự động co giãn ôm sát bên trái
+                            modifier = Modifier.weight(1f)
                         )
 
-                        // Khối chứa cả Lửa và Gói tập bên phải (Không dùng IntrinsicSize nữa)
+
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            // 2. 🔥 THẺ LỬA STREAK
                             Row(
                                 modifier = Modifier
                                     .background(Color(0xFF1C1C1E), shape = RoundedCornerShape(6.dp))
-                                    .padding(horizontal = 8.dp, vertical = 6.dp), // Tăng padding cho hộp to ra
+                                    .padding(horizontal = 8.dp, vertical = 6.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(text = "🔥", fontSize = 13.sp)
@@ -136,7 +132,7 @@ class ExerciseLibraryActivity : ComponentActivity() {
                                 )
                             }
 
-                            // 3. NÚT GÓI TẬP (Dùng icon chữ nguyên bản, bọc Box cho thoáng đạt)
+
                             Box(
                                 modifier = Modifier
                                     .background(Color(0xFF2C2C2E), shape = RoundedCornerShape(6.dp))
@@ -144,10 +140,9 @@ class ExerciseLibraryActivity : ComponentActivity() {
                                         context.startActivity(Intent(context, RoutineListActivity::class.java))
                                         Toast.makeText(context, "Mở danh sách Gói tập", Toast.LENGTH_SHORT).show()
                                     }
-                                    .padding(horizontal = 10.dp, vertical = 6.dp), // Padding chuẩn chỉnh không lo gãy dòng
+                                    .padding(horizontal = 10.dp, vertical = 6.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                // Trả icon về chung 1 dòng Text, dùng font hệ thống gốc để máy ảo lôi được biểu tượng ra
                                 Text(
                                     text = "Gói Tập 📋",
                                     color = Color.Yellow,
@@ -185,7 +180,6 @@ class ExerciseLibraryActivity : ComponentActivity() {
                                 onDeleteClick = {
                                     coroutineScope.launch {
                                         database.exerciseDao().deleteCustomExerciseById(exercise.id)
-                                        // Bơm lại dữ liệu mới
                                         databaseExercises = database.exerciseDao().getAllExercise()
                                         Toast.makeText(context, "Đã xóa bài tập khỏi hệ thống!", Toast.LENGTH_SHORT).show()
                                     }
@@ -197,7 +191,7 @@ class ExerciseLibraryActivity : ComponentActivity() {
                 }
             }
 
-            // Hộp thoại thêm bài tập custom mới (giữ nguyên)
+
             if (showAddDialog) {
                 AddExerciseDialog(
                     onDimiss = { showAddDialog = false },
@@ -219,9 +213,7 @@ class ExerciseLibraryActivity : ComponentActivity() {
                 )
             }
 
-            // 🚨 ĐÃ THÊM: DIALOG CHỌN GÓI TẬP ĐỂ BỎ VÀO GIỎ HÀNG
             if (selectedExerciseForRoutine != null) {
-                // Thu thập danh sách gói tập thực tế từ DB dưới dạng Flow
                 val routinesByFlow by database.workoutDao().getAllRoutines().collectAsState(initial = emptyList())
 
                 Dialog(onDismissRequest = { selectedExerciseForRoutine = null }) {
@@ -263,7 +255,6 @@ class ExerciseLibraryActivity : ComponentActivity() {
                                                             if (isExist > 0) {
                                                                 Toast.makeText(context, "Bài [${currentExercise.name}] đã có trong gói này rồi bác ơi!", Toast.LENGTH_SHORT).show()
                                                             } else {
-                                                                // Nếu chưa có -> Tiến hành nhặt vào giỏ bình thường
                                                                 database.workoutDao().addExerciseToRoutine(
                                                                     RoutineExercise(
                                                                         routineId = routine.id,
@@ -323,24 +314,21 @@ fun AddExerciseDialog(
     var guide by remember { mutableStateOf("") }
     var starRate by remember { mutableStateOf(5) }
 
-    // 🚨 BIẾN LƯU ĐƯỜNG DẪN ẢNH ĐƯỢC CHỌN TỪ GALLERY
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
 
-    // 🚨 BỘ PHÓNG VÀO GALLERY ĐIỆN THOẠI ĐỂ NHẶT ẢNH
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        selectedImageUri = uri // Nhặt được ảnh thì gán vào biến
+        selectedImageUri = uri
     }
 
-    // Định nghĩa bảng màu chuẩn cho Ô nhập liệu trên nền ĐEN
     val textFieldColors = OutlinedTextFieldDefaults.colors(
-        focusedTextColor = Color.White,      // Chữ gõ vào lúc đang chọn: MÀU TRẮNG
-        unfocusedTextColor = Color.White,    // Chữ gõ vào lúc bình thường: MÀU TRẮNG
-        focusedLabelColor = Color.Yellow,    // Chữ nhãn (Label) lúc chọn: MÀU VÀNG
-        unfocusedLabelColor = Color.LightGray, // Chữ nhãn lúc bình thường: MÀU XÁM SÁNG
-        focusedBorderColor = Color.Red,      // Viền ô lúc chọn: MÀU ĐỎ
-        unfocusedBorderColor = Color.DarkGray // Viền ô lúc bình thường: MÀU XÁM TỐI
+        focusedTextColor = Color.White,
+        unfocusedTextColor = Color.White,
+        focusedLabelColor = Color.Yellow,
+        unfocusedLabelColor = Color.LightGray,
+        focusedBorderColor = Color.Red,
+        unfocusedBorderColor = Color.DarkGray
     )
 
     Dialog(onDismissRequest = onDimiss){
@@ -349,7 +337,7 @@ fun AddExerciseDialog(
             shape = RoundedCornerShape(16.dp),
             modifier = Modifier.fillMaxWidth().padding(16.dp)
         ) {
-            LazyColumn( // Đổi thành LazyColumn đề phòng chọn ảnh to quá làm tràn màn hình
+            LazyColumn(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
@@ -357,7 +345,6 @@ fun AddExerciseDialog(
                     Text("THÊM BÀI TẬP MỚI CỦA BẠN", color = Color.Red, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 }
 
-                // 📸 KHỐI CHỌN ẢNH VÀ HIỂN THỊ XEM TRƯỚC (PREVIEW)
                 item {
                     Text("Ảnh minh họa bài tập:", color = Color.Gray, fontSize = 14.sp)
                     Spacer(modifier = Modifier.height(4.dp))
@@ -366,7 +353,6 @@ fun AddExerciseDialog(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        // Nút bấm kích hoạt mở Gallery điện thoại
                         Button(
                             onClick = { galleryLauncher.launch("image/*") }, // Chỉ lọc lấy file ảnh
                             colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray)
@@ -386,7 +372,7 @@ fun AddExerciseDialog(
                                     painter = rememberAsyncImagePainter(model = selectedImageUri),
                                     contentDescription = "Ảnh xem trước",
                                     modifier = Modifier.fillMaxSize(),
-                                    contentScale = androidx.compose.ui.layout.ContentScale.Crop // Ép ảnh vừa vặn khung bo góc cho đẹp
+                                    contentScale = androidx.compose.ui.layout.ContentScale.Crop // Ép ảnh vừa vặn khung bo góc
                                 )
                             } else {
                                 Text("Chưa có", color = Color.DarkGray, fontSize = 11.sp)
@@ -395,24 +381,22 @@ fun AddExerciseDialog(
                     }
                 }
 
-                // Ô nhập tên (ĐÃ FIX MÀU CHỮ)
                 item {
                     OutlinedTextField(
                         value = name,
                         onValueChange = {name = it},
                         label = { Text("Tên bài tập") },
-                        colors = textFieldColors, // 🚨 ĐÃ ÉP MÀU TRẮNG
+                        colors = textFieldColors,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
 
-                // Ô nhập hướng dẫn ngắn (ĐÃ FIX MÀU CHỮ)
                 item {
                     OutlinedTextField(
                         value = guide,
                         onValueChange = {guide = it},
                         label = { Text("Mô tả ngắn / Hướng dẫn") },
-                        colors = textFieldColors, // 🚨 ĐÃ ÉP MÀU TRẮNG
+                        colors = textFieldColors,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -622,7 +606,7 @@ fun ExerciseCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Bọc Column vào weight(1f) để ép chữ tự động xuống dòng nếu quá dài
+                    // Bọc Column vào weight(1f)
                     Column(modifier = Modifier.weight(1f)) {
                         StarRatingBar(rating = exercise.starRate)
                         Spacer(modifier = Modifier.height(6.dp))
@@ -630,13 +614,12 @@ fun ExerciseCard(
                             text = exercise.guide,
                             color = Color.Gray,
                             fontSize = 13.sp,
-                            maxLines = 2 // Giới hạn tối đa 2 dòng cho đẹp card, dài quá tự thêm ba chấm (...)
+                            maxLines = 2
                         )
                     }
 
-                    Spacer(modifier = Modifier.width(8.dp)) // Tạo khoảng cách an toàn với nút
+                    Spacer(modifier = Modifier.width(8.dp))
 
-                    // CHIẾC NÚT GIỎ HÀNG [+] KHÔNG BAO GIỜ BỊ ĐÈ
                     Box(
                         modifier = Modifier
                             .size(36.dp)
@@ -670,7 +653,7 @@ fun ExerciseCard(
             }
         )
     }
-    // Khối Dialog phóng to ảnh (Giữ nguyên vẹn)
+    // Khối Dialog phóng to ảnh
     if (showDialog) {
         Dialog(onDismissRequest = { showDialog = false }){
             Card(

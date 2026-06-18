@@ -44,11 +44,10 @@ class RoutineDetailActivity : ComponentActivity() {
             val coroutineScope = rememberCoroutineScope()
             val context = LocalContext.current
 
-            // Thuật toán tự động tính tổng số Sets của cả buổi tập để user cân đối Volume
             val totalSets = exercisesWithSets.sumOf { it.targetSets }
 
             Scaffold(
-                containerColor = Color.Black // Ép luôn nền đen cho toàn bộ màn hình
+                containerColor = Color.Black
             ) { paddingValues ->
                 Column(
                     modifier = Modifier

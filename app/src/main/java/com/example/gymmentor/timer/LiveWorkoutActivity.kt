@@ -84,7 +84,7 @@ class LiveWorkoutActivity : ComponentActivity() {
             }
 
             Scaffold(
-                containerColor = Color.Black // Ép luôn nền đen cho toàn bộ màn hình
+                containerColor = Color.Black
             ) { paddingValues ->
             Column(
                 modifier = Modifier
