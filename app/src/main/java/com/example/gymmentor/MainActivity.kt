@@ -28,7 +28,6 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.gymmentor.calculator.CalculatorActivity
-import com.example.gymmentor.profile.WorkoutHistoryActivity
 import com.example.gymmentor.timer.ExerciseLibraryActivity
 import kotlin.math.cos
 import kotlin.math.sin
@@ -405,7 +404,7 @@ fun CoreNavigation() {
             context.startActivity(Intent(context, CalculatorActivity::class.java))
         },
         NavItem("Lịch sử", "Xem tiến trình", Icons.Outlined.Whatshot) {
-            context.startActivity(Intent(context, WorkoutHistoryActivity::class.java))
+            // TODO: Mở màn hình Profile/History
         }
     )
 

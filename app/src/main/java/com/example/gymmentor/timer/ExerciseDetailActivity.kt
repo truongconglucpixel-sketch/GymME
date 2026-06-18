@@ -112,6 +112,7 @@ class ExerciseDetailActivity : ComponentActivity() {
                 }
             }
 
+            // 🚨 HỘP THOẠI ĐỂ NGƯỜI DÙNG TỰ CHẾ BƯỚC HƯỚNG DẪN MỚI
             if (showAddGuideDialog) {
                 AddGuideStepDialog(
                     nextStepNumber = guideList.size + 1, // Tự động tính toán số bước tiếp theo (vd: Bước 4)
