@@ -55,6 +55,7 @@ dependencies {
     ksp("androidx.room:room-compiler:$room_version")
     implementation("io.coil-kt:coil-compose:2.6.0")
 
+    implementation("androidx.compose.material:material-icons-extended")
     // Các thư viện Compose hệ thống giữ nguyên
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
@@ -71,4 +72,5 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
+
 }
