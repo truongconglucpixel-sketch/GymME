@@ -3,9 +3,6 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <application
-
-
-
         android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="false"
@@ -14,10 +11,6 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.GymMentor">
-
-        <activity
-            android:name=".dashboard.DashboardActivity"
-            android:exported="false" />
 
         <activity
             android:name="com.example.gymmentor.MainActivity"
