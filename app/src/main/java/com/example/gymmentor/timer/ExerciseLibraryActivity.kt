@@ -1,0 +1,708 @@
+package com.example.gymmentor.timer
+
+import android.content.Intent
+import android.net.Uri
+import android.os.Bundle
+import android.widget.Toast
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items // 🚨 ĐÃ FIX: Import phục vụ items trong LazyColumn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue // 🚨 ĐÃ FIX: Cứu vớt lỗi toán tử 'by collectAsState'
+import androidx.compose.runtime.setValue // 🚨 ĐÃ FIX: Cứu vớt lỗi toán tử 'by' nói chung
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import coil.compose.rememberAsyncImagePainter
+import com.example.gymmentor.data.AppDatabase
+import com.example.gymmentor.data.Exercise
+import com.example.gymmentor.data.RoutineExercise
+import kotlinx.coroutines.launch
+
+class ExerciseLibraryActivity : ComponentActivity() {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        // Kết nối hai đầu cổng DAO database
+        val database = AppDatabase.getDatabase(this)
+
+
+        setContent {
+            val context = LocalContext.current
+            val database = AppDatabase.getDatabase(context)
+
+            // 🚨 ĐÃ FIX: Biến trạng thái động chứa danh sách bài tập, mặc định ban đầu là trống
+            var databaseExercises by remember { mutableStateOf<List<Exercise>>(emptyList()) }
+            val coroutineScope = rememberCoroutineScope()
+            var streakCount by remember { mutableStateOf(0) }
+
+            // 🎯 ĐÃ FIX: Chạy ngầm lôi dữ liệu lên ngay khi màn hình sẵn sàng, database đúc xong phát là nạp vô biến ngay!
+            LaunchedEffect(Unit) {
+                databaseExercises = database.exerciseDao().getAllExercise()
+
+                val currentStreak = database.workoutDao().getUserStreak()
+                if (currentStreak != null) {
+                    streakCount = currentStreak.streakCount
+                }
+            }
+
+            var selectedCategory by remember { mutableStateOf("Tất cả") }
+            var showAddDialog by remember { mutableStateOf(false) }
+            var selectedExerciseForRoutine by remember { mutableStateOf<Exercise?>(null) }
+
+            // Bộ lọc dữ liệu tự động vẽ lại khi databaseExercises thay đổi
+            val filterExercises = if (selectedCategory == "Tất cả") {
+                databaseExercises
+            } else {
+                databaseExercises.filter { it.category == selectedCategory }
+            }
+                .sortedBy { if (it.type == "COMPOUND") 0 else 1 }
+
+            androidx.compose.material3.Scaffold(
+                floatingActionButton = {
+                    androidx.compose.material3.FloatingActionButton(
+                        onClick = { showAddDialog = true },
+                        containerColor = Color(0xFFFFA500),
+                        contentColor = Color.White
+                    ) {
+                        Text("+", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            ) { paddingValues ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black)
+                        .padding(paddingValues)
+                        .padding(16.dp)
+                ) {
+                    // 🚨 ĐÃ THÊM: Tiêu đề + Nút nhảy nhanh sang quản lý Gói Tập tĩnh
+                    // 🎯 BẢN CẢI TIẾN TIÊU ĐỀ: Đẹp, thoáng, cân đối 100% không lo lỗi font
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // 1. Tiêu đề bên trái màu Trắng tinh tế
+                        Text(
+                            text = "THƯ VIỆN BÀI TẬP",
+                            color = Color.White,
+                            fontSize = 20.sp, // Hạ xuống 20.sp để nhường đất cho thớt phải rộng rãi
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.weight(1f) // Ép tiêu đề tự động co giãn ôm sát bên trái
+                        )
+
+                        // Khối chứa cả Lửa và Gói tập bên phải (Không dùng IntrinsicSize nữa)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            // 2. 🔥 THẺ LỬA STREAK
+                            Row(
+                                modifier = Modifier
+                                    .background(Color(0xFF1C1C1E), shape = RoundedCornerShape(6.dp))
+                                    .padding(horizontal = 8.dp, vertical = 6.dp), // Tăng padding cho hộp to ra
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(text = "🔥", fontSize = 13.sp)
+                                Spacer(modifier = Modifier.width(3.dp))
+                                Text(
+                                    text = "$streakCount Buổi",
+                                    color = Color(0xFFFF8C00),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    maxLines = 1
+                                )
+                            }
+
+                            // 3. NÚT GÓI TẬP (Dùng icon chữ nguyên bản, bọc Box cho thoáng đạt)
+                            Box(
+                                modifier = Modifier
+                                    .background(Color(0xFF2C2C2E), shape = RoundedCornerShape(6.dp))
+                                    .clickable {
+                                        context.startActivity(Intent(context, RoutineListActivity::class.java))
+                                        Toast.makeText(context, "Mở danh sách Gói tập", Toast.LENGTH_SHORT).show()
+                                    }
+                                    .padding(horizontal = 10.dp, vertical = 6.dp), // Padding chuẩn chỉnh không lo gãy dòng
+                                contentAlignment = Alignment.Center
+                            ) {
+                                // Trả icon về chung 1 dòng Text, dùng font hệ thống gốc để máy ảo lôi được biểu tượng ra
+                                Text(
+                                    text = "Gói Tập 📋",
+                                    color = Color.Yellow,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    CategorySelector(
+                        categories = listOf("Tất cả", "Ngực", "Lưng", "Chân", "Vai", "Tay"),
+                        selectedCategory = selectedCategory,
+                        onCategorySelected = { selectedCategory = it }
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        items(filterExercises) { exercise ->
+                            ExerciseCard(
+                                exercise = exercise,
+                                onClick = {
+                                    val intent = Intent(this@ExerciseLibraryActivity, ExerciseDetailActivity::class.java).apply {
+                                        putExtra("EXERCISE_ID", exercise.id)
+                                        putExtra("EXERCISE_NAME", exercise.name)
+                                        putExtra("IS_CUSTOM", exercise.isCustom)
+                                    }
+                                    startActivity(intent)
+                                },
+                                onAddToRoutineClick = { selectedExerciseForRoutine = exercise },
+
+                                onDeleteClick = {
+                                    coroutineScope.launch {
+                                        database.exerciseDao().deleteCustomExerciseById(exercise.id)
+                                        // Bơm lại dữ liệu mới
+                                        databaseExercises = database.exerciseDao().getAllExercise()
+                                        Toast.makeText(context, "Đã xóa bài tập khỏi hệ thống!", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Hộp thoại thêm bài tập custom mới (giữ nguyên)
+            if (showAddDialog) {
+                AddExerciseDialog(
+                    onDimiss = { showAddDialog = false },
+                    onSave = { newExercise ->
+                        if (newExercise.mainImage.startsWith("content://")) {
+                            try {
+                                context.contentResolver.takePersistableUriPermission(
+                                    Uri.parse(newExercise.mainImage),
+                                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                )
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
+                        }
+                        database.exerciseDao().insertSingleExercise(newExercise)
+                        showAddDialog = false
+                        recreate()
+                    }
+                )
+            }
+
+            // 🚨 ĐÃ THÊM: DIALOG CHỌN GÓI TẬP ĐỂ BỎ VÀO GIỎ HÀNG
+            if (selectedExerciseForRoutine != null) {
+                // Thu thập danh sách gói tập thực tế từ DB dưới dạng Flow
+                val routinesByFlow by database.workoutDao().getAllRoutines().collectAsState(initial = emptyList())
+
+                Dialog(onDismissRequest = { selectedExerciseForRoutine = null }) {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1E)),
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.fillMaxWidth().padding(16.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Text(
+                                text = "THÊM BÀI [${selectedExerciseForRoutine?.name?.uppercase()}] VÀO GÓI:",
+                                color = Color.White,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            if (routinesByFlow.isEmpty()) {
+                                Text("Bạn chưa tạo gói tập nào dưới máy ảo. Hãy tạo gói trước!", color = Color.Gray, fontSize = 13.sp)
+                            } else {
+                                LazyColumn(
+                                    modifier = Modifier.heightIn(max = 200.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    items(routinesByFlow) { routine ->
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .background(Color(0xFF2C2C2E), shape = RoundedCornerShape(8.dp))
+                                                .clickable {
+                                                    val currentExercise = selectedExerciseForRoutine
+
+                                                    if (currentExercise != null) {
+                                                        coroutineScope.launch {
+                                                            val isExist = database.workoutDao().isExerciseInRoutine(routine.id, currentExercise.id)
+
+                                                            if (isExist > 0) {
+                                                                Toast.makeText(context, "Bài [${currentExercise.name}] đã có trong gói này rồi bác ơi!", Toast.LENGTH_SHORT).show()
+                                                            } else {
+                                                                // Nếu chưa có -> Tiến hành nhặt vào giỏ bình thường
+                                                                database.workoutDao().addExerciseToRoutine(
+                                                                    RoutineExercise(
+                                                                        routineId = routine.id,
+                                                                        exerciseId = currentExercise.id,
+                                                                        targetSets = 4
+                                                                    )
+                                                                )
+                                                                Toast.makeText(context, "Đã nhặt vào gói: ${routine.name}", Toast.LENGTH_SHORT).show()
+                                                            }
+                                                        }
+                                                    }
+                                                    selectedExerciseForRoutine = null // Đóng dialog
+                                                }
+                                                .padding(14.dp)
+                                        ) {
+                                            Text(text = "📋  ${routine.name}", color = Color.Yellow, fontWeight = FontWeight.SemiBold)
+                                        }
+                                    }
+                                }
+                            }
+
+                            TextButton(
+                                onClick = { selectedExerciseForRoutine = null },
+                                modifier = Modifier.align(Alignment.End)
+                            ) {
+                                Text("Đóng", color = Color.Red)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun StarRatingBar(rating: Int, maxStars: Int = 5) {
+    Row(horizontalArrangement = Arrangement.spacedBy(2.dp)){
+        for (i in 1..maxStars)
+            Text(
+                text = if (i <= rating)"★" else "☆",
+                color = Color(0xFFFFD700),
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold
+            )
+    }
+}
+
+@Composable
+fun AddExerciseDialog(
+    onDimiss: () -> Unit,
+    onSave: (Exercise) -> Unit
+){
+    var name by remember { mutableStateOf("") }
+    var category by remember { mutableStateOf("Ngực") }
+    var type by remember { mutableStateOf("COMPOUND") }
+    var guide by remember { mutableStateOf("") }
+    var starRate by remember { mutableStateOf(5) }
+
+    // 🚨 BIẾN LƯU ĐƯỜNG DẪN ẢNH ĐƯỢC CHỌN TỪ GALLERY
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+
+    // 🚨 BỘ PHÓNG VÀO GALLERY ĐIỆN THOẠI ĐỂ NHẶT ẢNH
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        selectedImageUri = uri // Nhặt được ảnh thì gán vào biến
+    }
+
+    // Định nghĩa bảng màu chuẩn cho Ô nhập liệu trên nền ĐEN
+    val textFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = Color.White,      // Chữ gõ vào lúc đang chọn: MÀU TRẮNG
+        unfocusedTextColor = Color.White,    // Chữ gõ vào lúc bình thường: MÀU TRẮNG
+        focusedLabelColor = Color.Yellow,    // Chữ nhãn (Label) lúc chọn: MÀU VÀNG
+        unfocusedLabelColor = Color.LightGray, // Chữ nhãn lúc bình thường: MÀU XÁM SÁNG
+        focusedBorderColor = Color.Red,      // Viền ô lúc chọn: MÀU ĐỎ
+        unfocusedBorderColor = Color.DarkGray // Viền ô lúc bình thường: MÀU XÁM TỐI
+    )
+
+    Dialog(onDismissRequest = onDimiss){
+        Card(
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1E)),
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.fillMaxWidth().padding(16.dp)
+        ) {
+            LazyColumn( // Đổi thành LazyColumn đề phòng chọn ảnh to quá làm tràn màn hình
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                item {
+                    Text("THÊM BÀI TẬP MỚI CỦA BẠN", color = Color.Red, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                }
+
+                // 📸 KHỐI CHỌN ẢNH VÀ HIỂN THỊ XEM TRƯỚC (PREVIEW)
+                item {
+                    Text("Ảnh minh họa bài tập:", color = Color.Gray, fontSize = 14.sp)
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        // Nút bấm kích hoạt mở Gallery điện thoại
+                        Button(
+                            onClick = { galleryLauncher.launch("image/*") }, // Chỉ lọc lấy file ảnh
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray)
+                        ) {
+                            Text("Chọn ảnh từ máy", color = Color.White)
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .size(60.dp)
+                                .background(Color.Black, shape = RoundedCornerShape(8.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (selectedImageUri != null) {
+
+                                Image(
+                                    painter = rememberAsyncImagePainter(model = selectedImageUri),
+                                    contentDescription = "Ảnh xem trước",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = androidx.compose.ui.layout.ContentScale.Crop // Ép ảnh vừa vặn khung bo góc cho đẹp
+                                )
+                            } else {
+                                Text("Chưa có", color = Color.DarkGray, fontSize = 11.sp)
+                            }
+                        }
+                    }
+                }
+
+                // Ô nhập tên (ĐÃ FIX MÀU CHỮ)
+                item {
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = {name = it},
+                        label = { Text("Tên bài tập") },
+                        colors = textFieldColors, // 🚨 ĐÃ ÉP MÀU TRẮNG
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                // Ô nhập hướng dẫn ngắn (ĐÃ FIX MÀU CHỮ)
+                item {
+                    OutlinedTextField(
+                        value = guide,
+                        onValueChange = {guide = it},
+                        label = { Text("Mô tả ngắn / Hướng dẫn") },
+                        colors = textFieldColors, // 🚨 ĐÃ ÉP MÀU TRẮNG
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                item {
+                    Text("Nhóm cơ: ", color = Color.Gray, fontSize = 14.sp)
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)){
+                        items(listOf("Ngực", "Lưng", "Chân", "Vai", "Tay")) { cat ->
+                            FilterChip(
+                                selected = category == cat,
+                                onClick = { category = cat },
+                                label = { Text(cat) }
+                            )
+                        }
+                    }
+                }
+
+                item {
+                    Text("Dạng bài tập", color = Color.Gray, fontSize = 14.sp)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf("COMPOUND", "ISOLATION").forEach { t ->
+                            FilterChip(
+                                selected = type == t,
+                                onClick = { type = t },
+                                label = { Text(t) }
+                            )
+                        }
+                    }
+                }
+
+                item {
+                    Text("Đánh giá độ hiệu quả:", color = Color.Gray, fontSize = 14.sp)
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ){
+                        for (i in 1..5){
+                            Text(
+                                text = if (i <= starRate) "★" else "☆",
+                                color = Color(0xFFFFD700),
+                                fontSize = 28.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.clickable {
+                                    starRate = i
+                                }
+                            )
+                        }
+                    }
+                }
+
+                item {
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically
+                    ){
+                        TextButton(onClick = onDimiss) {
+                            Text("Hủy", color = Color.Gray)
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        Button(
+                            onClick = {
+                                if (name.isNotBlank()) {
+                                    val newExercise = Exercise(
+                                        name = name,
+                                        category = category,
+                                        guide = guide,
+                                        type = type,
+                                        mainImage = selectedImageUri?.toString() ?: "",
+                                        starRate = starRate,
+                                        isCustom = true
+                                    )
+                                    onSave(newExercise)
+                                }
+                            }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFA500))
+                        ) { Text("Lưu Bài", color = Color.White)}
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CategorySelector(categories: List<String>, selectedCategory: String, onCategorySelected: (String) -> Unit) {
+    LazyRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(end = 16.dp)
+    ) {
+        items(categories) { category ->
+            val isSelected = category == selectedCategory
+            Box(
+                modifier = Modifier
+                    .background(if (isSelected) Color.Red else Color.DarkGray, shape = RoundedCornerShape(8.dp))
+                    .clickable { onCategorySelected(category) }
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Text(text = category, color = Color.White, fontWeight = FontWeight.Bold, maxLines = 1)
+            }
+        }
+    }
+}
+
+@Composable
+fun ExerciseCard(
+    exercise: Exercise,
+    onClick: () -> Unit,
+    onAddToRoutineClick: () -> Unit,
+    onDeleteClick: () -> Unit
+) {
+    val context = LocalContext.current
+    var showDialog by remember { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+
+    val isUriImage = remember(exercise.mainImage) {
+        exercise.mainImage.startsWith("content://") || exercise.mainImage.startsWith("file://") }
+
+    val imageResId = remember(exercise.mainImage) {
+        if (!isUriImage && exercise.mainImage.isNotBlank()){
+            context.resources.getIdentifier(exercise.mainImage, "drawable", context.packageName)
+        } else { 0 }
+    }
+
+    val imagePainter = if (isUriImage){
+        rememberAsyncImagePainter(model = exercise.mainImage)
+    } else {
+        painterResource(id = if (imageResId != 0) imageResId else android.R.drawable.ic_menu_gallery)
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .combinedClickable(
+                onClick = { onClick() },
+                onLongClick = {
+                    if (exercise.isCustom) {
+                        showDeleteConfirm = true
+                    }
+                }
+            ),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1E)),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Row(modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically) {
+
+            Image(
+                painter = imagePainter,
+                contentDescription = null,
+                modifier = Modifier
+                    .size(75.dp)
+                    .background(Color.DarkGray, shape = RoundedCornerShape(8.dp))
+                    .clickable { showDialog = true }
+            )
+
+            Spacer(modifier = Modifier.width(14.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        exercise.name,
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (exercise.isCustom) {
+                            Box(
+                                modifier = Modifier
+                                    .background(Color(0xFFFF8C00), shape = RoundedCornerShape(4.dp))
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = "CUSTOM",
+                                    color = Color.White,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.ExtraBold
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(6.dp))
+                        }
+
+                        Text(
+                            text = exercise.type,
+                            color = if (exercise.type == "COMPOUND") Color.Yellow else Color.Cyan,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.ExtraBold
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Bọc Column vào weight(1f) để ép chữ tự động xuống dòng nếu quá dài
+                    Column(modifier = Modifier.weight(1f)) {
+                        StarRatingBar(rating = exercise.starRate)
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = exercise.guide,
+                            color = Color.Gray,
+                            fontSize = 13.sp,
+                            maxLines = 2 // Giới hạn tối đa 2 dòng cho đẹp card, dài quá tự thêm ba chấm (...)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp)) // Tạo khoảng cách an toàn với nút
+
+                    // CHIẾC NÚT GIỎ HÀNG [+] KHÔNG BAO GIỜ BỊ ĐÈ
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(Color.Red, shape = CircleShape)
+                            .clickable { onAddToRoutineClick() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("+", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
+
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            containerColor = Color(0xFF1C1C1E),
+            title = { Text("XÓA BÀI TẬP TỰ CHẾ", color = Color.Red, fontWeight = FontWeight.Bold, fontSize = 16.sp) },
+            text = { Text("Bạn có chắc chắn muốn xóa bài [${exercise.name.uppercase()}] khỏi thư viện? Hành vi này sẽ xóa bài này khỏi tất cả các Gói tập hiện tại.", color = Color.White, fontSize = 14.sp) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDeleteClick()
+                        showDeleteConfirm = false
+                    }
+                ) { Text("XÓA BỎ", color = Color.Red, fontWeight = FontWeight.Bold) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) { Text("HỦY", color = Color.Gray) }
+            }
+        )
+    }
+    // Khối Dialog phóng to ảnh (Giữ nguyên vẹn)
+    if (showDialog) {
+        Dialog(onDismissRequest = { showDialog = false }){
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1E)),
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.padding(16.dp)
+            ){
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ){
+                    Text(
+                        text = "ẢNH HƯỚNG DẪN: ${exercise.name.uppercase()}",
+                        color = Color.Yellow,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Image(
+                        painter = imagePainter,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxWidth().height(250.dp).background(Color.DarkGray)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = { showDialog = false },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                    ) {
+                        Text("Đóng", color = Color.White)
+                    }
+                }
+            }
+        }
+    }
+}
