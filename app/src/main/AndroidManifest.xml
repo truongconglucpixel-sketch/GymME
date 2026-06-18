@@ -22,6 +22,10 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".dashboard.DashboardActivity"
+            android:exported="false" />
+
         <activity android:name=".timer.ExerciseLibraryActivity" android:exported="false" />
         <activity android:name=".timer.TimerActivity" android:exported="false" />
         <activity android:name=".timer.ExerciseDetailActivity" android:exported="false" />
@@ -30,5 +34,7 @@
         <activity android:name=".timer.LiveWorkoutActivity" android:exported="false"/>
 
         <activity android:name=".calculator.CalculatorActivity" android:exported="false"/>
+
+        <activity android:name=".profile.WorkoutHistoryActivity" android:exported="false"/>
     </application>
 </manifest>
