@@ -24,6 +24,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -82,11 +83,15 @@ class LiveWorkoutActivity : ComponentActivity() {
                 }
             }
 
+            Scaffold(
+                containerColor = Color.Black // Ép luôn nền đen cho toàn bộ màn hình
+            ) { paddingValues ->
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color.Black)
                     .padding(16.dp)
+                    .padding(paddingValues)
             ){
                 Row(
                     modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween
@@ -252,6 +257,7 @@ class LiveWorkoutActivity : ComponentActivity() {
             }
         }
     }
+}
 
     // --- CÁC HÀM ĐIỀU KHIỂN TIMING LÕI CỦA BÁC (Đã đồng bộ) ---
     private fun startTimer(duration: Long) {
