@@ -1,6 +1,5 @@
 package com.example.gymmentor.timer
 
-import android.app.Dialog
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -12,8 +11,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items // 🚨 ĐÃ FIX: Import phục vụ items trong LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,6 +32,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import coil.compose.rememberAsyncImagePainter
+import com.example.gymmentor.data.AppDatabase
+import com.example.gymmentor.data.Exercise
+import com.example.gymmentor.data.RoutineExercise
 import kotlinx.coroutines.launch
 
 class ExerciseLibraryActivity : ComponentActivity() {
@@ -77,7 +81,7 @@ class ExerciseLibraryActivity : ComponentActivity() {
                 floatingActionButton = {
                     androidx.compose.material3.FloatingActionButton(
                         onClick = { showAddDialog = true },
-                        containerColor = Color.Red,
+                        containerColor = Color(0xFFFFA500),
                         contentColor = Color.White
                     ) {
                         Text("+", fontSize = 24.sp, fontWeight = FontWeight.Bold)
@@ -158,7 +162,7 @@ class ExerciseLibraryActivity : ComponentActivity() {
                     Spacer(modifier = Modifier.height(16.dp))
 
                     CategorySelector(
-                        categories = listOf("Tất cả", "Ngực", "Lưng", "Chân"),
+                        categories = listOf("Tất cả", "Ngực", "Lưng", "Chân", "Vai", "Tay"),
                         selectedCategory = selectedCategory,
                         onCategorySelected = { selectedCategory = it }
                     )
@@ -176,7 +180,17 @@ class ExerciseLibraryActivity : ComponentActivity() {
                                     }
                                     startActivity(intent)
                                 },
-                                onAddToRoutineClick = { selectedExerciseForRoutine = exercise }
+                                onAddToRoutineClick = { selectedExerciseForRoutine = exercise },
+
+                                onDeleteClick = {
+                                    coroutineScope.launch {
+                                        database.exerciseDao().deleteCustomExerciseById(exercise.id)
+                                        // Bơm lại dữ liệu mới
+                                        databaseExercises = database.exerciseDao().getAllExercise()
+                                        Toast.makeText(context, "Đã xóa bài tập khỏi hệ thống!", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+
                             )
                         }
                     }
@@ -405,8 +419,8 @@ fun AddExerciseDialog(
 
                 item {
                     Text("Nhóm cơ: ", color = Color.Gray, fontSize = 14.sp)
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)){
-                        listOf("Ngực", "Lưng", "Chân").forEach { cat ->
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)){
+                        items(listOf("Ngực", "Lưng", "Chân", "Vai", "Tay")) { cat ->
                             FilterChip(
                                 selected = category == cat,
                                 onClick = { category = cat },
@@ -478,7 +492,7 @@ fun AddExerciseDialog(
                                     )
                                     onSave(newExercise)
                                 }
-                            }, colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                            }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFA500))
                         ) { Text("Lưu Bài", color = Color.White)}
                     }
                 }
@@ -489,20 +503,20 @@ fun AddExerciseDialog(
 
 @Composable
 fun CategorySelector(categories: List<String>, selectedCategory: String, onCategorySelected: (String) -> Unit) {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        categories.forEach { category ->
+    LazyRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(end = 16.dp)
+    ) {
+        items(categories) { category ->
             val isSelected = category == selectedCategory
-
             Box(
                 modifier = Modifier
-                    .background(
-                        if (isSelected) Color.Red else Color.DarkGray,
-                        shape = RoundedCornerShape(8.dp)
-                    )
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .background(if (isSelected) Color.Red else Color.DarkGray, shape = RoundedCornerShape(8.dp))
                     .clickable { onCategorySelected(category) }
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
-                Text(category, color = Color.White, fontWeight = FontWeight.Bold)
+                Text(text = category, color = Color.White, fontWeight = FontWeight.Bold, maxLines = 1)
             }
         }
     }
@@ -512,10 +526,12 @@ fun CategorySelector(categories: List<String>, selectedCategory: String, onCateg
 fun ExerciseCard(
     exercise: Exercise,
     onClick: () -> Unit,
-    onAddToRoutineClick: () -> Unit // 🚨 CỔNG ĐÓN MỚI: Ủy quyền sự kiện bấm nút nhặt hàng bỏ giỏ
+    onAddToRoutineClick: () -> Unit,
+    onDeleteClick: () -> Unit
 ) {
     val context = LocalContext.current
     var showDialog by remember { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
 
     val isUriImage = remember(exercise.mainImage) {
         exercise.mainImage.startsWith("content://") || exercise.mainImage.startsWith("file://") }
@@ -535,7 +551,14 @@ fun ExerciseCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() },
+            .combinedClickable(
+                onClick = { onClick() },
+                onLongClick = {
+                    if (exercise.isCustom) {
+                        showDeleteConfirm = true
+                    }
+                }
+            ),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1E)),
         shape = RoundedCornerShape(12.dp)
     ) {
@@ -628,6 +651,25 @@ fun ExerciseCard(
         }
     }
 
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            containerColor = Color(0xFF1C1C1E),
+            title = { Text("XÓA BÀI TẬP TỰ CHẾ", color = Color.Red, fontWeight = FontWeight.Bold, fontSize = 16.sp) },
+            text = { Text("Bạn có chắc chắn muốn xóa bài [${exercise.name.uppercase()}] khỏi thư viện? Hành vi này sẽ xóa bài này khỏi tất cả các Gói tập hiện tại.", color = Color.White, fontSize = 14.sp) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDeleteClick()
+                        showDeleteConfirm = false
+                    }
+                ) { Text("XÓA BỎ", color = Color.Red, fontWeight = FontWeight.Bold) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) { Text("HỦY", color = Color.Gray) }
+            }
+        )
+    }
     // Khối Dialog phóng to ảnh (Giữ nguyên vẹn)
     if (showDialog) {
         Dialog(onDismissRequest = { showDialog = false }){

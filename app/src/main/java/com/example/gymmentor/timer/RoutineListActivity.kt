@@ -21,6 +21,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.example.gymmentor.data.AppDatabase
+import com.example.gymmentor.data.WorkoutRoutine
 import kotlinx.coroutines.launch
 
 class RoutineListActivity : ComponentActivity() {
@@ -126,7 +128,11 @@ class RoutineListActivity : ComponentActivity() {
                                     onClick = {
                                         if (routineName.isNotBlank()) {
                                             coroutineScope.launch {
-                                                database.workoutDao().insertRoutine(WorkoutRoutine(name = routineName))
+                                                database.workoutDao().insertRoutine(
+                                                    WorkoutRoutine(
+                                                        name = routineName
+                                                    )
+                                                )
                                             }
                                             showCreateDialog = false
                                         }
