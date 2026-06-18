@@ -53,7 +53,7 @@ class MainActivity : ComponentActivity() {
                         startActivity(intent)
                     },
                     modifier = Modifier.fillMaxWidth().height(55.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red) 
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
                 ) {
                     Text("2. THƯ VIỆN BÀI TẬP & TIMER", fontWeight = FontWeight.Bold)
                 }

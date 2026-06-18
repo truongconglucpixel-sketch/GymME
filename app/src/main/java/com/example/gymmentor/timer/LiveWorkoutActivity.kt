@@ -41,6 +41,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.gymmentor.data.AppDatabase
+import com.example.gymmentor.data.ExerciseGuide
+import com.example.gymmentor.data.UserStreak
+import com.example.gymmentor.data.WorkoutHistory
 import kotlinx.coroutines.launch
 
 class LiveWorkoutActivity : ComponentActivity() {
@@ -166,7 +170,11 @@ class LiveWorkoutActivity : ComponentActivity() {
                                                         var currentStreak = database.workoutDao().getUserStreak()
 
                                                         val updatedStreak = if (currentStreak == null){
-                                                            UserStreak(id = 1, streakCount = 1, lastWorkoutDate = currentMillis)
+                                                            UserStreak(
+                                                                id = 1,
+                                                                streakCount = 1,
+                                                                lastWorkoutDate = currentMillis
+                                                            )
                                                         } else {
                                                             currentStreak.copy(streakCount = currentStreak.streakCount + 1, lastWorkoutDate = currentMillis)
                                                         }

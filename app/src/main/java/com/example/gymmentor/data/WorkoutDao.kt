@@ -1,4 +1,4 @@
-package com.example.gymmentor.timer
+package com.example.gymmentor.data
 
 import androidx.room.*
 import kotlinx.coroutines.flow.Flow
@@ -39,7 +39,7 @@ interface WorkoutDao {
         INNER JOIN exercises e ON r.exercise_id = e.id
         WHERE r.routine_id = :routineId
     """)
-    fun getExercisesFromRoutine(routineId: Int): kotlinx.coroutines.flow.Flow<List<ExerciseWithTargetSets>>
+    fun getExercisesFromRoutine(routineId: Int): Flow<List<ExerciseWithTargetSets>>
 
     @Query("SELECT * FROM user_streaks WHERE id = 1")
     suspend fun getUserStreak(): UserStreak?
@@ -55,5 +55,5 @@ interface WorkoutDao {
     suspend fun   insertHistory(history: WorkoutHistory)
 
     @Query("SELECT * FROM workout_history ORDER BY logged_at DESC")
-    fun getAllHistory(): kotlinx.coroutines.flow.Flow<List<WorkoutHistory>>
+    fun getAllHistory(): Flow<List<WorkoutHistory>>
 }
