@@ -67,6 +67,7 @@ class ExerciseLibraryActivity : ComponentActivity() {
             var selectedCategory by remember { mutableStateOf("Tất cả") }
             var showAddDialog by remember { mutableStateOf(false) }
             var selectedExerciseForRoutine by remember { mutableStateOf<Exercise?>(null) }
+            var selectedExerciseForEdit by remember { mutableStateOf<Exercise?>(null) }
 
             val filterExercises = if (selectedCategory == "Tất cả") {
                 databaseExercises
@@ -183,7 +184,8 @@ class ExerciseLibraryActivity : ComponentActivity() {
                                         databaseExercises = database.exerciseDao().getAllExercise()
                                         Toast.makeText(context, "Đã xóa bài tập khỏi hệ thống!", Toast.LENGTH_SHORT).show()
                                     }
-                                }
+                                },
+                                onEditClick = { selectedExerciseForEdit = exercise }
 
                             )
                         }
@@ -285,6 +287,29 @@ class ExerciseLibraryActivity : ComponentActivity() {
                         }
                     }
                 }
+            }
+
+            if (selectedExerciseForEdit != null) {
+                EditExerciseDialog(
+                    exercise = selectedExerciseForEdit!!,
+                    onDimiss = { selectedExerciseForEdit = null },
+                    onSave = { updatedExercise ->
+                        if (updatedExercise.mainImage.startsWith("content://")) {
+                            try {
+                                context.contentResolver.takePersistableUriPermission(
+                                    Uri.parse(updatedExercise.mainImage),
+                                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                )
+                            } catch (e: Exception) { e.printStackTrace() }
+                        }
+                        coroutineScope.launch {
+                            database.exerciseDao().insertSingleExercise(updatedExercise)
+                            databaseExercises = database.exerciseDao().getAllExercise()
+                            selectedExerciseForEdit = null
+                            Toast.makeText(context, "Đã cập nhật bài tập thành công!", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                )
             }
         }
     }
@@ -486,6 +511,115 @@ fun AddExerciseDialog(
 }
 
 @Composable
+fun EditExerciseDialog(
+    exercise: Exercise,
+    onDimiss: () -> Unit,
+    onSave: (Exercise) -> Unit
+) {
+    // Đổ ngược dữ liệu hiện tại của bài tập vào trạng thái ban đầu
+    var name by remember { mutableStateOf(exercise.name) }
+    var category by remember { mutableStateOf(exercise.category) }
+    var type by remember { mutableStateOf(exercise.type) }
+    var guide by remember { mutableStateOf(exercise.guide) }
+    var starRate by remember { mutableStateOf(exercise.starRate) }
+
+    // Xử lý Uri ảnh cũ nếu có
+    var selectedImageUri by remember { mutableStateOf<Uri?>(if (exercise.mainImage.startsWith("content://")) Uri.parse(exercise.mainImage) else null) }
+
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? -> if (uri != null) selectedImageUri = uri }
+
+    val textFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = Color.White, unfocusedTextColor = Color.White,
+        focusedLabelColor = Color.Yellow, unfocusedLabelColor = Color.LightGray,
+        focusedBorderColor = Color.Red, unfocusedBorderColor = Color.DarkGray
+    )
+
+    Dialog(onDismissRequest = onDimiss) {
+        Card(
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1E)),
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.fillMaxWidth().padding(16.dp)
+        ) {
+            LazyColumn(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                item { Text("CHỈNH SỬA BÀI TẬP", color = Color(0xFFFFA500), fontSize = 18.sp, fontWeight = FontWeight.Bold) }
+
+                item {
+                    Text("Ảnh minh họa bài tập:", color = Color.Gray, fontSize = 14.sp)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Button(onClick = { galleryLauncher.launch("image/*") }, colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray)) {
+                            Text("Đổi ảnh từ máy", color = Color.White)
+                        }
+                        Box(modifier = Modifier.size(60.dp).background(Color.Black, shape = RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
+                            if (selectedImageUri != null) {
+                                Image(painter = rememberAsyncImagePainter(model = selectedImageUri), contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = androidx.compose.ui.layout.ContentScale.Crop)
+                            } else if (exercise.mainImage.isNotBlank() && !exercise.mainImage.startsWith("content://")) {
+                                val context = LocalContext.current
+                                val id = context.resources.getIdentifier(exercise.mainImage, "drawable", context.packageName)
+                                if (id != 0) Image(painter = painterResource(id = id), contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = androidx.compose.ui.layout.ContentScale.Crop)
+                            } else { Text("Chưa có", color = Color.DarkGray, fontSize = 11.sp) }
+                        }
+                    }
+                }
+
+                item { OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Tên bài tập") }, colors = textFieldColors, modifier = Modifier.fillMaxWidth()) }
+                item { OutlinedTextField(value = guide, onValueChange = { guide = it }, label = { Text("Mô tả ngắn / Hướng dẫn") }, colors = textFieldColors, modifier = Modifier.fillMaxWidth()) }
+
+                item {
+                    Text("Nhóm cơ: ", color = Color.Gray, fontSize = 14.sp)
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        items(listOf("Ngực", "Lưng", "Chân", "Vai", "Tay")) { cat ->
+                            FilterChip(selected = category == cat, onClick = { category = cat }, label = { Text(cat) })
+                        }
+                    }
+                }
+
+                item {
+                    Text("Dạng bài tập", color = Color.Gray, fontSize = 14.sp)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf("COMPOUND", "ISOLATION").forEach { t ->
+                            FilterChip(selected = type == t, onClick = { type = t }, label = { Text(t) })
+                        }
+                    }
+                }
+
+                item {
+                    Text("Đánh giá độ hiệu quả:", color = Color.Gray, fontSize = 14.sp)
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        for (i in 1..5) {
+                            Text(text = if (i <= starRate) "★" else "☆", color = Color(0xFFFFD700), fontSize = 28.sp, fontWeight = FontWeight.Bold, modifier = Modifier.clickable { starRate = i })
+                        }
+                    }
+                }
+
+                item {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                        TextButton(onClick = onDimiss) { Text("Hủy", color = Color.Gray) }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Button(
+                            onClick = {
+                                if (name.isNotBlank()) {
+                                    // Giữ nguyên ID gốc của bài tập để Room cập nhật đè (Update) thay vì tạo mới
+                                    val updated = exercise.copy(
+                                        name = name, category = category, guide = guide, type = type,
+                                        mainImage = selectedImageUri?.toString() ?: exercise.mainImage,
+                                        starRate = starRate
+                                    )
+                                    onSave(updated)
+                                }
+                            }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFA500))
+                        ) { Text("Cập Nhật", color = Color.White) }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun CategorySelector(categories: List<String>, selectedCategory: String, onCategorySelected: (String) -> Unit) {
     LazyRow(
         modifier = Modifier.fillMaxWidth(),
@@ -511,11 +645,14 @@ fun ExerciseCard(
     exercise: Exercise,
     onClick: () -> Unit,
     onAddToRoutineClick: () -> Unit,
-    onDeleteClick: () -> Unit
+    onDeleteClick: () -> Unit,
+    onEditClick: () -> Unit
 ) {
     val context = LocalContext.current
     var showDialog by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
+
+    var showOptionsDialog by remember { mutableStateOf(false) }
 
     val isUriImage = remember(exercise.mainImage) {
         exercise.mainImage.startsWith("content://") || exercise.mainImage.startsWith("file://") }
@@ -539,7 +676,7 @@ fun ExerciseCard(
                 onClick = { onClick() },
                 onLongClick = {
                     if (exercise.isCustom) {
-                        showDeleteConfirm = true
+                        showOptionsDialog = true
                     }
                 }
             ),
@@ -629,6 +766,31 @@ fun ExerciseCard(
                     ) {
                         Text("+", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                     }
+                }
+            }
+        }
+    }
+
+    if (showOptionsDialog) {
+        Dialog(onDismissRequest = { showOptionsDialog = false }) {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF2C2C2E)),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(text = "TÙY CHỌN BÀI TẬP: ${exercise.name.uppercase()}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+
+                    Button(
+                        onClick = { showOptionsDialog = false; onEditClick() }, // Mở Dialog Sửa
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFA500)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("Chỉnh Sửa Kỹ Thuật ✏️", color = Color.White) }
+
+                    Button(
+                        onClick = { showOptionsDialog = false; showDeleteConfirm = true }, // Mở Dialog Xóa
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("Xóa Bài Tập Khỏi Hệ Thống 🗑️", color = Color.White) }
                 }
             }
         }
