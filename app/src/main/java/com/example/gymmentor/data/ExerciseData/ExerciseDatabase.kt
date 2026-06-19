@@ -1,4 +1,4 @@
-package com.example.gymmentor.data
+package com.example.gymmentor.data.ExerciseData
 
 import android.content.Context
 import androidx.room.*

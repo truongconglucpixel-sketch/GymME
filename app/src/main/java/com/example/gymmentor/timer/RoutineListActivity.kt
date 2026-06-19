@@ -21,8 +21,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import com.example.gymmentor.data.AppDatabase
-import com.example.gymmentor.data.WorkoutRoutine
+import com.example.gymmentor.data.ExerciseData.AppDatabase
+import com.example.gymmentor.data.ExerciseData.WorkoutRoutine
 import kotlinx.coroutines.launch
 
 class RoutineListActivity : ComponentActivity() {

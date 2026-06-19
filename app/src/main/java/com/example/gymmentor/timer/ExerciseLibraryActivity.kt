@@ -32,9 +32,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import coil.compose.rememberAsyncImagePainter
-import com.example.gymmentor.data.AppDatabase
-import com.example.gymmentor.data.Exercise
-import com.example.gymmentor.data.RoutineExercise
+import com.example.gymmentor.data.ExerciseData.AppDatabase
+import com.example.gymmentor.data.ExerciseData.Exercise
+import com.example.gymmentor.data.ExerciseData.RoutineExercise
 import kotlinx.coroutines.launch
 
 class ExerciseLibraryActivity : ComponentActivity() {

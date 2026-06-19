@@ -27,8 +27,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import coil.compose.rememberAsyncImagePainter
-import com.example.gymmentor.data.AppDatabase
-import com.example.gymmentor.data.ExerciseGuide
+import com.example.gymmentor.data.ExerciseData.AppDatabase
+import com.example.gymmentor.data.ExerciseData.ExerciseGuide
 
 class ExerciseDetailActivity : ComponentActivity() {
 
@@ -51,11 +51,15 @@ class ExerciseDetailActivity : ComponentActivity() {
                 guideList = database.exerciseDao().getGuidesForExercise(exerciseId)
             }
 
+            Scaffold(
+                containerColor = Color.Black
+            ) { paddingValues ->
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color.Black)
                     .padding(16.dp)
+                    .padding(paddingValues)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -250,4 +254,5 @@ fun AddGuideStepDialog(
             }
         }
     }
+}
 }

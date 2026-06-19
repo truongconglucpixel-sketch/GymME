@@ -28,6 +28,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.gymmentor.calculator.CalculatorActivity
+import com.example.gymmentor.profile.ProfileActivity
 import com.example.gymmentor.profile.WorkoutHistoryActivity
 import com.example.gymmentor.timer.ExerciseLibraryActivity
 import kotlin.math.cos
@@ -404,8 +405,8 @@ fun CoreNavigation() {
         NavItem("Calculators", "1RM, Plate, FFMI", Icons.Outlined.Whatshot) {
             context.startActivity(Intent(context, CalculatorActivity::class.java))
         },
-        NavItem("Lịch sử", "Xem tiến trình", Icons.Outlined.Whatshot) {
-            context.startActivity(Intent(context, WorkoutHistoryActivity::class.java))
+        NavItem("Profile", "Xem tiến trình", Icons.Outlined.Whatshot) {
+            context.startActivity(Intent(context, ProfileActivity::class.java))
         }
     )
 

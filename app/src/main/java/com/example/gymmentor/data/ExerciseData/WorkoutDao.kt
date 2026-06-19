@@ -1,4 +1,4 @@
-package com.example.gymmentor.data
+package com.example.gymmentor.data.ExerciseData
 
 import androidx.room.*
 import kotlinx.coroutines.flow.Flow
