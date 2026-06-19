@@ -42,10 +42,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.gymmentor.data.AppDatabase
-import com.example.gymmentor.data.ExerciseGuide
-import com.example.gymmentor.data.UserStreak
-import com.example.gymmentor.data.WorkoutHistory
+import com.example.gymmentor.data.ExerciseData.AppDatabase
+import com.example.gymmentor.data.ExerciseData.ExerciseGuide
+import com.example.gymmentor.data.ExerciseData.UserStreak
+import com.example.gymmentor.data.ExerciseData.WorkoutHistory
 import kotlinx.coroutines.launch
 
 class LiveWorkoutActivity : ComponentActivity() {
