@@ -2,6 +2,7 @@ package com.example.gymmentor
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.animateColorAsState
@@ -27,6 +28,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import com.example.gymmentor.calculator.CalculatorActivity
 import com.example.gymmentor.profile.ProfileActivity
 import com.example.gymmentor.profile.WorkoutHistoryActivity
@@ -40,6 +43,18 @@ data class Mission(val id: Int, val title: String, val isChecked: Boolean)
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        window.decorView.setBackgroundColor(android.graphics.Color.BLACK)
+
+        val decorView = window.decorView
+        val rootView = decorView.findViewById<View>(android.R.id.content)
+
+        ViewCompat.setOnApplyWindowInsetsListener(rootView) { v, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+            insets
+        }
+
         setContent {
             // Áp dụng theme tối
             MaterialTheme(
