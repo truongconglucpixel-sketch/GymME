@@ -70,21 +70,41 @@ fun MainScreen() {
         )
     }
 
-    // Trạng thái streak
+    // Trạng thái streak & missions
     var streakDays by remember { mutableIntStateOf(14) }
-
-    // XP progress
+    var isStreakClaimed by remember { mutableStateOf(false) }
     val xpProgress = 0.75f
+
+    // THÊM MỚI: Trạng thái đăng nhập
+    var isLoggedIn by remember { mutableStateOf(false) }
+    var showLoginDialog by remember { mutableStateOf(false) }
+    var userName by remember { mutableStateOf("Guest") }
 
     Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(16.dp)
-                .verticalScroll(rememberScrollState()) // Đảm bảo toàn bộ màn hình có thể cuộn
+                .verticalScroll(rememberScrollState())
         ) {
             // ========== KHU VỰC 1: HEADER ==========
-            HeaderSection(streakDays, xpProgress)
+            // Truyền thêm trạng thái và sự kiện click
+            HeaderSection(
+                streakDays = streakDays,
+                xpProgress = xpProgress,
+                isLoggedIn = isLoggedIn,
+                userName = userName,
+                onProfileClick = {
+                    if (!isLoggedIn) {
+                        showLoginDialog = true // Mở dialog đăng nhập nếu chưa login
+                    } else {
+                        // Đã đăng nhập -> Mở trang Profile
+                        try {
+                            context.startActivity(Intent(context, ProfileActivity::class.java))
+                        } catch (e: Exception) {}
+                    }
+                }
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -95,15 +115,20 @@ fun MainScreen() {
                     val idx = missions.indexOfFirst { it.id == mission.id }
                     if (idx != -1) {
                         missions[idx] = mission.copy(isChecked = !mission.isChecked)
+                        val isAllCompleted = missions.all { it.isChecked }
+                        if (isAllCompleted && !isStreakClaimed) {
+                            streakDays += 1
+                            isStreakClaimed = true
+                        } else if (!isAllCompleted && isStreakClaimed) {
+                            streakDays -= 1
+                            isStreakClaimed = false
+                        }
                     }
                 },
                 onRadarClick = {
-                    // Chuyển sang Dashboard (Skill Tree)
                     try {
                         context.startActivity(Intent(context, com.example.gymmentor.dashboard.DashboardActivity::class.java))
-                    } catch (e: Exception) {
-                        // Tránh crash nếu Activity chưa được khai báo
-                    }
+                    } catch (e: Exception) {}
                 }
             )
 
@@ -112,15 +137,12 @@ fun MainScreen() {
             // ========== KHU VỰC 3: CORE NAVIGATION ==========
             CoreNavigation()
 
-            // Padding dưới cùng để không bị FAB che khuất nội dung cuối
             Spacer(modifier = Modifier.height(80.dp))
         }
 
         // ========== KHU VỰC 4: FLOATING ACTION BUTTON ==========
         FloatingActionButton(
-            onClick = {
-                // TODO: Gọi timer/service
-            },
+            onClick = { /* TODO: Gọi timer/service */ },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(16.dp),
@@ -132,27 +154,40 @@ fun MainScreen() {
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Default.PlayArrow,
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp)
-                )
+                Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(24.dp))
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Quick Start Workout", fontWeight = FontWeight.Bold)
             }
+        }
+
+        // THÊM MỚI: Hiển thị Dialog Đăng nhập
+        if (showLoginDialog) {
+            LoginDialog(
+                onDismiss = { showLoginDialog = false },
+                onLoginSuccess = { inputName ->
+                    userName = inputName
+                    isLoggedIn = true
+                    showLoginDialog = false
+                }
+            )
         }
     }
 }
 
 // ========== HEADER ==========
 @Composable
-fun HeaderSection(streakDays: Int, xpProgress: Float) {
+fun HeaderSection(
+    streakDays: Int,
+    xpProgress: Float,
+    isLoggedIn: Boolean,
+    userName: String,
+    onProfileClick: () -> Unit
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        // App Brand với hiệu ứng glow
         Text(
             text = "GYM MENTOR",
             fontSize = 22.sp,
@@ -167,7 +202,6 @@ fun HeaderSection(streakDays: Int, xpProgress: Float) {
             )
         )
 
-        // Streak + Mini Profile
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -193,34 +227,42 @@ fun HeaderSection(streakDays: Int, xpProgress: Float) {
             Box(
                 modifier = Modifier
                     .size(44.dp)
-                    .clickable { /* Mở Profile */ }
+                    .clickable { onProfileClick() } // Gọi hàm click ở đây
             ) {
                 Canvas(modifier = Modifier.matchParentSize()) {
                     drawCircle(
-                        color = Color(0xFF00FF88),
+                        color = if (isLoggedIn) Color(0xFF00FF88) else Color.Gray, // Đổi màu viền nếu chưa login
                         radius = size.minDimension / 2,
                         style = Stroke(width = 4f)
                     )
-                    drawArc(
-                        color = Color.DarkGray,
-                        startAngle = -90f,
-                        sweepAngle = 360f * (1 - xpProgress),
-                        useCenter = false,
-                        style = Stroke(width = 4f)
-                    )
+                    if (isLoggedIn) {
+                        drawArc(
+                            color = Color.DarkGray,
+                            startAngle = -90f,
+                            sweepAngle = 360f * (1 - xpProgress),
+                            useCenter = false,
+                            style = Stroke(width = 4f)
+                        )
+                    }
                 }
                 Box(
                     modifier = Modifier
                         .size(36.dp)
                         .align(Alignment.Center)
-                        .background(Color.Gray, CircleShape)
+                        .background(Color.DarkGray, CircleShape)
                 ) {
-                    // Placeholder cho Avatar
+                    // Lấy chữ cái đầu tiên của tên để làm Avatar
+                    val initial = if (isLoggedIn && userName.isNotEmpty()) {
+                        userName.first().uppercase()
+                    } else {
+                        "?" // Khách
+                    }
+
                     Text(
-                        "GM",
+                        text = initial,
                         modifier = Modifier.align(Alignment.Center),
                         color = Color.White,
-                        fontSize = 12.sp,
+                        fontSize = 14.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -465,6 +507,76 @@ fun NavigationCard(item: NavItem) {
             )
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun LoginDialog(
+    onDismiss: () -> Unit,
+    onLoginSuccess: (String) -> Unit
+) {
+    var inputName by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface,
+        title = {
+            Text("Đăng nhập", color = Color.White, fontWeight = FontWeight.Bold)
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = inputName,
+                    onValueChange = { inputName = it },
+                    label = { Text("Tên hiển thị (Username)", color = Color.Gray) },
+                    singleLine = true,
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        focusedIndicatorColor = Color(0xFF00FF88),     // Màu viền khi click vào
+                        unfocusedIndicatorColor = Color.DarkGray,       // Màu viền bình thường
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text("Mật khẩu", color = Color.Gray) },
+                    singleLine = true,
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        focusedIndicatorColor = Color(0xFF00FF88),     // Màu viền khi click vào
+                        unfocusedIndicatorColor = Color.DarkGray,       // Màu viền bình thường
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (inputName.isNotBlank()) {
+                        onLoginSuccess(inputName)
+                    }
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00FF88))
+            ) {
+                Text("Vào tập", color = Color.Black, fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Hủy", color = Color.Gray)
+            }
+        }
+    )
 }
 
 data class NavItem(
